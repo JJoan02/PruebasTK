@@ -1,11 +1,11 @@
-# These are supported funding model platforms 
-github: [GataNina-Li]
-patreon: # Replace 
-open_collective: # Replace with a single Open Collective username
-ko_fi: # Replace with a single Ko-fi username
-tidelift: # Replace with a single Tidelift platform-name/package-name e.g., npm/babel
-community_bridge: # Replace with a single Community Bridge project-name e.g., cloud-foundry
-liberapay: # Replace with a single Liberapay username
-issuehunt: # Replace with a single IssueHunt username
-otechie: # Replace with a single Otechie username
-custom: ['https://dash.corinplus.com', 'https://boxmineworld.com', 'https://www.cafirexos.com', 'https://infinitywa-host.com']
+# Estas son las plataformas de modelos de financiamiento compatibles
+github: [JJoan02]
+patreon: # Reemplazar
+open_collective: # Reemplazar con un solo nombre de usuario de Open Collective
+ko_fi: # Reemplazar con un solo nombre de usuario de Ko-fi
+tidelift: # Reemplazar con un solo nombre de la plataforma y nombre del paquete de Tidelift, por ejemplo, npm/babel
+community_bridge: # Reemplazar con un solo nombre de proyecto de Community Bridge, por ejemplo, cloud-foundry
+liberapay: # Reemplazar con un solo nombre de usuario de Liberapay
+issuehunt: # Reemplazar con un solo nombre de usuario de IssueHunt
+otechie: # Reemplazar con un solo nombre de usuario de Otechie
+custom: ['https://dash.corinplus.com']
