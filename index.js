@@ -108,21 +108,15 @@ p.on('exit', (_, code) => {
     })
 })
 
-// Importar módulos necesarios
-const ramInGB = os.totalmem() / (1024 * 1024 * 1024); // Calcula la memoria total del sistema en GB
-const freeRamInGB = os.freemem() / (1024 * 1024 * 1024); // Calcula la memoria RAM libre del sistema en GB
-const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json'); // Define la ruta al archivo package.json
-
+const ramInGB = os.totalmem() / (1024 * 1024 * 1024)
+const freeRamInGB = os.freemem() / (1024 * 1024 * 1024)
+const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json')
 try {
-    // Intentar leer el archivo package.json
-    const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
-    const packageJsonObj = JSON.parse(packageJsonData); // Convertir los datos JSON en un objeto JavaScript
-    const currentTime = new Date().toLocaleString(); // Obtener la hora actual
-
-    let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
-
-    // Mostrar información del sistema y del proyecto en la consola
-    console.log(chalk.yellow(`╭${lineM}
+const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8')
+const packageJsonObj = JSON.parse(packageJsonData)
+const currentTime = new Date().toLocaleString()
+let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》'
+console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`🖥️ ${os.type()}, ${os.release()} - ${os.arch()}`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💾 Total RAM: ${ramInGB.toFixed(2)} GB`)}
@@ -132,12 +126,12 @@ try {
 ┊${chalk.blueBright('┊')} ${chalk.blue.bold(`🟢INFORMACIÓN :`)}
 ┊${chalk.blueBright('┊')} ${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ┊${chalk.blueBright('┊')}${chalk.cyan(`💚 Nombre: ${packageJsonObj.name}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`💻 Versión: ${packageJsonObj.version}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`𓃠 Versión: ${packageJsonObj.version}`)}
 ┊${chalk.blueBright('┊')}${chalk.cyan(`💜 Descripción: ${packageJsonObj.description}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`😺 Autor del Proyecto: ${packageJsonObj.author.name} (@gata_dios)`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`😺 Project Author: ${packageJsonObj.author.name} (@gata_dios)`)}
 ┊${chalk.blueBright('┊')}${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💜 Colaboradores:`)}
-┊${chalk.blueBright('┊')}${chalk.yellow(`• JJoan02 (Joan-TK)`)}
+┊${chalk.blueBright('┊')}${chalk.yellow(`• elrebelde21 (Mario ofc)`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`• KatashiFukushima (Katashi)`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
@@ -145,34 +139,15 @@ try {
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
-
-    // Mantener el proceso en ejecución indefinidamente
-    setInterval(() => {}, 1000);
-
+setInterval(() => {}, 1000)
 } catch (err) {
-    // Manejo de errores al leer el archivo package.json
-    console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`))
 }
 
-// Importa la librería 'yargs' para el manejo de argumentos de línea de comandos
-const yargs = require('yargs');
+let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
+if (!opts['test'])
+if (!rl.listenerCount()) rl.on('line', line => {
+p.emit('message', line.trim())
+})}
 
-// Procesa los argumentos de línea de comandos
-let opts = yargs(process.argv.slice(2))
-  .exitProcess(false) // Evita que 'yargs' termine el proceso automáticamente
-  .parse(); // Analiza los argumentos y los convierte en un objeto
-
-// Verifica si la opción 'test' no está presente en los argumentos
-if (!opts['test']) {
-  // Verifica si no hay listeners (escuchadores) registrados en el objeto 'rl'
-  if (!rl.listenerCount()) {
-    // Agrega un listener para el evento 'line' del objeto 'rl'
-    rl.on('line', line => {
-      // Emite el evento 'message' con la línea de entrada, eliminando los espacios en blanco alrededor
-      p.emit('message', line.trim());
-    });
-  }
-}
-
-// Llama a la función 'start' con el archivo 'main.js' como argumento
-start('main.js');
+start('main.js')
