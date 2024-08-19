@@ -182,7 +182,7 @@ const connectionOptions = {
 logger: pino({ level: 'silent' }),
 printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
 mobile: MethodMobile, 
-browser: opcion == '1' ? ['GataBot-MD', 'Edge', '2.0.0'] : methodCodeQR ? ['GataBot-MD', 'Edge', '2.0.0'] : ['Ubuntu', 'Edge', '110.0.1587.56'],
+browser: opcion == '1' ? ['GataBot-MD', 'Edge', '2.0.0'] : methodCodeQR ? ['GataBot-MD', 'Edge', '2.0.0'] : ["Ubuntu", "Chrome", "20.0.04"],
 auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
@@ -282,12 +282,11 @@ process.on('uncaughtException', console.error);
 //process.on('uncaughtException', (err) => {
 //console.error('Se ha cerrado la conexión:\n', err)
 //process.send('reset') })
-
 /* ------------------------------------------------*/
 /* Código reconexión de sub-bots fases beta */
 /* Echo por: https://github.com/elrebelde21 */
 
-/*async function connectSubBots() {
+async function connectSubBots() {
 const subBotDirectory = './GataJadiBot';
 if (!existsSync(subBotDirectory)) {
 console.log('No se encontraron ningun sub-bots.');
