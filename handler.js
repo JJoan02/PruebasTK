@@ -1453,131 +1453,51 @@ if (plugin.register == true && _user.registered == false) { // Usuario registrad
     continue // Continúa con la siguiente iteración del bucle.
 }
 
-m.isCommand = true // Marca el mensaje como un comando
 
-// Define la cantidad de XP ganada por comando, por defecto 10
-let xp = 'exp' in plugin ? parseInt(plugin.exp) : 10
-
-// Verifica si la cantidad de XP es mayor que 2000
+m.isCommand = true
+let xp = 'exp' in plugin ? parseInt(plugin.exp) : 10 // Ganancia de XP por comando
 if (xp > 2000)
-    m.reply('Exp limit') // Responde con un mensaje de límite de XP
+m.reply('Exp limit') // Hehehe
 else               
-// Verifica si el usuario no es premium y necesita cierta cantidad de dinero para ejecutar el comando
 if (!isPrems && plugin.money && global.db.data.users[m.sender].money < plugin.money * 1) {
-// Envia un mensaje al usuario indicando que no tiene suficiente dinero (JoanCoins)
-    this.sendMessage(m.chat, {text: `💸💔 ¡Uy, parece que tus 🪙 *𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔* se han ido de vacaciones! 😹🌴\n\n🔍 ¡Checa tu saldo y vuelve cuando tengas más monedas para jugar! 😜👋\n\nMientras tanto, si quieres ser el *rey de las 𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔*, prueba *superar el desafío* en nuestra tienda: ${gt}! 🎉👑\n\n🔗 *[Ver tienda]*(${accountsgb})`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 💻 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 - 𝑾𝒉𝒂𝒕𝒔𝒂𝒑𝒑 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
-    continue // Continúa con la siguiente iteración del bucle
+//this.reply(m.chat, `🐈 💸💔 ¡Uy, parece que tus 🪙 *𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔* se han ido de vacaciones! 😹🌴`, m)
+this.sendMessage(m.chat, {text: `💸💔 ¡Uy, parece que tus 🪙 *𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔* se han ido de vacaciones! 😹🌴\n\n🔍 ¡Checa tu saldo y vuelve cuando tengas más monedas para jugar! 😜👋\n\nMientras tanto, si quieres ser el *rey de las 𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔*, prueba *superar el desafío* en nuestra tienda: ${gt}! 🎉👑\n\n🔗 *[Ver tienda]*(${accountsgb})`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 💻 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 - 𝑾𝒉𝒂𝒕𝒔𝒂𝒑𝒑 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
+continue     
 }
-
-// Añade la experiencia (xp) al valor actual de m.exp
+			
 m.exp += xp
-
-// Verifica si el usuario no es un premium y si el límite de usuario es menor que el límite requerido por el plugin
 if (!isPrems && plugin.limit && global.db.data.users[m.sender].limit < plugin.limit * 1) {
-    // Envía un mensaje indicando que el usuario necesita comprar más límites
-    this.sendMessage(m.chat, {
-        text: `${lenguajeGB['smsCont7']()} *${usedPrefix}buy*`,
-        contextInfo: {
-            externalAdReply: {
-                mediaUrl: null,
-                mediaType: 1,
-                description: null,
-                title: gt,
-                body: ' 💻 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 - 𝑾𝒉𝒂𝒕𝒔𝒂𝒑𝒑 ',
-                previewType: 0,
-                thumbnail: gataImg,
-                sourceUrl: accountsgb
-            }
-        }
-    }, { quoted: m })
-    // Continúa con la siguiente iteración sin aplicar el comando
-    continue // Sin límite
+this.sendMessage(m.chat, {text: `${lenguajeGB['smsCont7']()} *${usedPrefix}buy*`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 😻 𝗦𝘂𝗽𝗲𝗿 𝗚𝗮𝘁𝗮𝗕𝗼𝘁-𝗠𝗗 - 𝗪𝗵𝗮𝘁𝘀𝗔𝗽𝗽 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
+//this.reply(m.chat, `${lenguajeGB['smsCont7']()} *${usedPrefix}buy*`, m)
+continue //Sin límite
 }
-
-// Verifica si el nivel del plugin es mayor que el nivel del usuario
 if (plugin.level > _user.level) {
-    // Envía un mensaje indicando la diferencia de niveles
-    this.sendMessage(m.chat, {
-        text: `${lenguajeGB['smsCont9']()} *${plugin.level}* ${lenguajeGB['smsCont10']()} *${_user.level}* ${lenguajeGB['smsCont11']()} *${usedPrefix}nivel*`,
-        contextInfo: {
-            externalAdReply: {
-                mediaUrl: null,
-                mediaType: 1,
-                description: null,
-                title: gt,
-                body: ' 💻 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 - 𝑾𝒉𝒂𝒕𝒔𝒂𝒑𝒑 ',
-                previewType: 0,
-                thumbnail: gataImg,
-                sourceUrl: accountsgb
-            }
-        }
-    }, { quoted: m })
-    // Continúa con la siguiente iteración si el nivel no se ha alcanzado
-    continue // Si no se ha alcanzado el nivel
+this.sendMessage(m.chat, {text: `${lenguajeGB['smsCont9']()} *${plugin.level}* ${lenguajeGB['smsCont10']()} *${_user.level}* ${lenguajeGB['smsCont11']()} *${usedPrefix}nivel*`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 💻 𝑺𝒖𝒑𝒆𝒓 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 - 𝑾𝒉𝒂𝒕𝒔𝒂𝒑𝒑 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
+//this.reply(m.chat, `${lenguajeGB['smsCont9']()} *${plugin.level}* ${lenguajeGB['smsCont10']()} *${_user.level}* ${lenguajeGB['smsCont11']()} *${usedPrefix}nivel*`, m)
+continue // Si no se ha alcanzado el nivel
 }
 let extra = {
-    // Coincidencia encontrada por el comando o patrón
-    match,
-
-    // Prefijo usado para invocar el comando
-    usedPrefix,
-
-    // Prefijo no usado (posiblemente usado para comandos sin prefijo)
-    noPrefix,
-
-    // Argumentos originales del comando
-    _args,
-
-    // Argumentos procesados del comando
-    args,
-
-    // Nombre del comando que se está ejecutando
-    command,
-
-    // Texto completo del mensaje o comando
-    text,
-
-    // Referencia al objeto de conexión o contexto
-    conn: this,
-
-    // Lista de participantes en el grupo
-    participants,
-
-    // Metadatos del grupo (información sobre el grupo)
-    groupMetadata,
-
-    // Información del usuario que envía el mensaje
-    user,
-
-    // Información del bot que está ejecutando el comando
-    bot,
-
-    // Indica si el usuario es el propietario del bot
-    isROwner,
-
-    // Indica si el usuario es el propietario del grupo
-    isOwner,
-
-    // Indica si el usuario es un administrador de rango
-    isRAdmin,
-
-    // Indica si el usuario es un administrador
-    isAdmin,
-
-    // Indica si el bot es un administrador
-    isBotAdmin,
-
-    // Indica si el usuario tiene un estatus de premium
-    isPrems,
-
-    // Actualización del estado del chat (como cambios en los participantes)
-    chatUpdate,
-
-    // Nombre del directorio actual
-    __dirname: ___dirname,
-
-    // Nombre del archivo actual
-    __filename
+match,
+usedPrefix,
+noPrefix,
+_args,
+args,
+command,
+text,
+conn: this,
+participants,
+groupMetadata,
+user,
+bot,
+isROwner,
+isOwner,
+isRAdmin,
+isAdmin,
+isBotAdmin,
+isPrems,
+chatUpdate,
+__dirname: ___dirname,
+__filename
 }
 try {
 await plugin.call(this, m, extra)
