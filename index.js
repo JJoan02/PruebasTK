@@ -36,53 +36,93 @@ say(`Por Joan-TK`, {
     gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
 })
 
+// Variable para controlar si el proceso ya está en ejecución
 var isRunning = false
 
+// Función asíncrona para iniciar un archivo específico
 async function start(file) {
-if (isRunning) return
-isRunning = true
-const currentFilePath = new URL(import.meta.url).pathname
-let args = [join(__dirname, file), ...process.argv.slice(2)]
-say([process.argv[0], ...args].join(' '), {
-font: 'console',
-align: 'center',
-gradient: ['red', 'magenta']
-})
-setupMaster({exec: args[0], args: args.slice(1),
-})
-let p = fork()
-p.on('message', data => {
-switch (data) {
-case 'reset':
-p.process.kill()
-isRunning = false
-start.apply(this, arguments)
-break
-case 'uptime':
-p.send(process.uptime())
-break
-}})
+    // Verificar si el proceso ya está en ejecución, y si es así, no continuar
+    if (isRunning) return
+    isRunning = true // Marcar que el proceso está en ejecución
 
+    // Obtener la ruta actual del archivo
+    const currentFilePath = new URL(import.meta.url).pathname
+
+    // Configurar los argumentos para ejecutar el archivo, incluyendo los argumentos de la línea de comandos
+    let args = [join(__dirname, file), ...process.argv.slice(2)]
+
+    // Mostrar en la consola los argumentos con una fuente y gradiente específicos
+    say([process.argv[0], ...args].join(' '), {
+        font: 'console',            // Estilo de fuente ('console')
+        align: 'center',            // Alineación del texto en el centro
+        gradient: ['red', 'magenta'] // Gradiente de colores (rojo a magenta)
+    })
+
+    // Configurar el proceso maestro para ejecutar el archivo especificado
+    setupMaster({
+        exec: args[0],         // Archivo a ejecutar
+        args: args.slice(1)    // Argumentos adicionales
+    })
+
+    // Crear un proceso hijo
+    let p = fork()
+
+    // Manejar mensajes enviados desde el proceso hijo
+    p.on('message', data => {
+        switch (data) {
+            // Reiniciar el proceso si se recibe el mensaje 'reset'
+            case 'reset':
+                p.process.kill()     // Terminar el proceso hijo
+                isRunning = false    // Marcar que ya no está en ejecución
+                start.apply(this, arguments) // Reiniciar el proceso
+                break
+            // Enviar el tiempo de actividad del proceso si se recibe el mensaje 'uptime'
+            case 'uptime':
+                p.send(process.uptime()) // Enviar el tiempo de actividad
+                break
+        }
+    })
+}
+
+// Escuchar el evento 'exit' del proceso hijo
 p.on('exit', (_, code) => {
-isRunning = false
-console.error('⚠️ ERROR ⚠️ >> ', code)
-start('main.js'); //
+    // Marcar que el proceso ya no está en ejecución
+    isRunning = false
 
-if (code === 0) return
-watchFile(args[0], () => {
-unwatchFile(args[0])
-start(file)
-})})
+    // Mostrar un mensaje de error en la consola con el código de salida
+    console.error('⚠️ ERROR ⚠️ >> ', code)
 
-const ramInGB = os.totalmem() / (1024 * 1024 * 1024)
-const freeRamInGB = os.freemem() / (1024 * 1024 * 1024)
-const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json')
+    // Reiniciar el proceso llamando a la función 'start' con el archivo 'main.js'
+    start('main.js')
+
+    // Si el código de salida es 0, terminar la función aquí
+    if (code === 0) return
+
+    // Vigilar el archivo especificado en 'args[0]'
+    watchFile(args[0], () => {
+        // Dejar de vigilar el archivo
+        unwatchFile(args[0])
+
+        // Reiniciar el proceso llamando nuevamente a 'start' con el archivo original
+        start(file)
+    })
+})
+
+// Importar módulos necesarios
+const ramInGB = os.totalmem() / (1024 * 1024 * 1024); // Calcula la memoria total del sistema en GB
+const freeRamInGB = os.freemem() / (1024 * 1024 * 1024); // Calcula la memoria RAM libre del sistema en GB
+const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json'); // Define la ruta al archivo package.json
+
 try {
-const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8')
-const packageJsonObj = JSON.parse(packageJsonData)
-const currentTime = new Date().toLocaleString()
-let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》'
-console.log(chalk.yellow(`╭${lineM}
+    // Intentar leer el archivo package.json
+    const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
+    const packageJsonObj = JSON.parse(packageJsonData); // Convertir los datos JSON en un objeto JavaScript
+    const currentTime = new Date().toLocaleString(); // Obtener la hora actual
+
+    let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
+
+    // Mostrar información del sistema y del proyecto en la consola
+    console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`🖥️ ${os.type()}, ${os.release()} - ${os.arch()}`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💾 Total RAM: ${ramInGB.toFixed(2)} GB`)}
@@ -92,12 +132,12 @@ console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('┊')} ${chalk.blue.bold(`🟢INFORMACIÓN :`)}
 ┊${chalk.blueBright('┊')} ${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ┊${chalk.blueBright('┊')}${chalk.cyan(`💚 Nombre: ${packageJsonObj.name}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`𓃠 Versión: ${packageJsonObj.version}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`💻 Versión: ${packageJsonObj.version}`)}
 ┊${chalk.blueBright('┊')}${chalk.cyan(`💜 Descripción: ${packageJsonObj.description}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`😺 Project Author: ${packageJsonObj.author.name} (@gata_dios)`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`😺 Autor del Proyecto: ${packageJsonObj.author.name} (@gata_dios)`)}
 ┊${chalk.blueBright('┊')}${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💜 Colaboradores:`)}
-┊${chalk.blueBright('┊')}${chalk.yellow(`• elrebelde21 (Mario ofc)`)}
+┊${chalk.blueBright('┊')}${chalk.yellow(`• JJoan02 (Joan-TK)`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`• KatashiFukushima (Katashi)`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
@@ -105,15 +145,34 @@ console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
-setInterval(() => {}, 1000)
+
+    // Mantener el proceso en ejecución indefinidamente
+    setInterval(() => {}, 1000);
+
 } catch (err) {
-console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`))
+    // Manejo de errores al leer el archivo package.json
+    console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
 }
 
-let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
-if (!opts['test'])
-if (!rl.listenerCount()) rl.on('line', line => {
-p.emit('message', line.trim())
-})}
+// Importa la librería 'yargs' para el manejo de argumentos de línea de comandos
+const yargs = require('yargs');
 
-start('main.js')
+// Procesa los argumentos de línea de comandos
+let opts = yargs(process.argv.slice(2))
+  .exitProcess(false) // Evita que 'yargs' termine el proceso automáticamente
+  .parse(); // Analiza los argumentos y los convierte en un objeto
+
+// Verifica si la opción 'test' no está presente en los argumentos
+if (!opts['test']) {
+  // Verifica si no hay listeners (escuchadores) registrados en el objeto 'rl'
+  if (!rl.listenerCount()) {
+    // Agrega un listener para el evento 'line' del objeto 'rl'
+    rl.on('line', line => {
+      // Emite el evento 'message' con la línea de entrada, eliminando los espacios en blanco alrededor
+      p.emit('message', line.trim());
+    });
+  }
+}
+
+// Llama a la función 'start' con el archivo 'main.js' como argumento
+start('main.js');
