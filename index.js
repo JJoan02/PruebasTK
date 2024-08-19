@@ -22,19 +22,29 @@ const rl = createInterface(process.stdin, process.stdout)
 //const app = express()
 //const port = process.env.PORT || 8080;
 
-// Mostrar el texto '𝑨𝒅𝒎𝒊𝒏\n𝑻𝑲' en la consola con un estilo de fuente y gradiente de color específico
-say('Admin\nBot\nTK', {
+// Función para mostrar texto con estilo en la consola
+const displayText = (text, options) => {
+    const { font, align, gradient } = options;
+    say(text, {
+        font: font || 'default',    // Estilo de fuente, usa 'default' si no se especifica
+        align: align || 'left',     // Alineación del texto, usa 'left' si no se especifica
+        gradient: gradient || ['white', 'black'] // Gradiente de colores, usa blanco a negro por defecto
+    });
+};
+
+// Mostrar el texto '𝑨𝒅𝒎𝒊𝒏\n𝑻𝑲' en la consola con un estilo de fuente y gradiente específico
+displayText('Admin\nBot\nTK', {
     font: 'chrome',              // Estilo de fuente utilizado ('chrome')
     align: 'center',             // Alineación del texto en el centro
     gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
-})
+});
 
 // Mostrar el texto 'Por 𝑱𝒐𝒂𝒏-𝑻𝑲' en la consola con otro estilo de fuente y gradiente de color
-say(`Por Joan-TK`, {
+displayText('Por Joan-TK', {
     font: 'console',             // Estilo de fuente utilizado ('console')
     align: 'center',             // Alineación del texto en el centro
     gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
-})
+});
 
 var isRunning = false
 
