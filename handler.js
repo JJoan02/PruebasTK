@@ -2193,19 +2193,8 @@ watchFile(file, async () => {
     //if (global.reloadHandler) console.log(await global.reloadHandler())
 })
   
-// Verifica si existe el objeto global `conns` y si contiene elementos
-if (global.conns && global.conns.length > 0) {
-    
-    // Filtra las conexiones activas que tienen un usuario definido y cuyo socket no está cerrado
-    // Luego elimina las conexiones duplicadas usando un Set
-    const users = [...new Set(
-        [...global.conns.filter((conn) => 
-            conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED
-        ).map((conn) => conn)]
-    )];
-    
-    // Itera sobre cada conexión activa filtrada y llama al método `subreloadHandler` con el argumento `false`
-    for (const userr of users) {
-        userr.subreloadHandler(false);
-    }
-}
+if (global.conns && global.conns.length > 0 ) {
+const users = [...new Set([...global.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED).map((conn) => conn)])];
+for (const userr of users) {
+userr.subreloadHandler(false)
+}}});
