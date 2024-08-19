@@ -23,7 +23,7 @@ const rl = createInterface(process.stdin, process.stdout)
 //const port = process.env.PORT || 8080;
 
 // Mostrar el texto '𝑨𝒅𝒎𝒊𝒏\n𝑻𝑲' en la consola con un estilo de fuente y gradiente de color específico
-say('𝑨𝒅𝒎𝒊𝒏\n𝑻𝑲', {
+say('𝑨𝒅𝒎𝒊𝒏\n𝑩𝒐𝒕\n𝑻𝑲', {
     font: 'chrome',              // Estilo de fuente utilizado ('chrome')
     align: 'center',             // Alineación del texto en el centro
     gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
