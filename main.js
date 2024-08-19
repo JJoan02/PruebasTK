@@ -287,7 +287,7 @@ process.on('uncaughtException', console.error);
 /* Echo por: https://github.com/elrebelde21 */
 
 async function connectSubBots() {
-const subBotDirectory = './GataJadiBot';
+const subBotDirectory = './SubBots-Data';
 if (!existsSync(subBotDirectory)) {
 console.log('No se encontraron ningun sub-bots.');
 return;
@@ -307,7 +307,7 @@ console.log(chalk.bold.greenBright(`✅ TODOS LOS SUB-BOTS SE HAN INICIADO CORRE
 }
 (async () => {
 global.conns = [];
-const mainBotAuthFile = 'GataBotSession';
+const mainBotAuthFile = 'AdminSession';
 try {
 const mainBot = await connectionUpdate(mainBotAuthFile);
 global.conns.push(mainBot);
@@ -316,7 +316,7 @@ await connectSubBots();
 } catch (error) {
 console.error(chalk.bold.cyanBright(`❌ OCURRIÓ UN ERROR AL INICIAR EL BOT PRINCIPAL: `, error))
 }
-})();*/
+})();
 
 /* ------------------------------------------------*/
 
