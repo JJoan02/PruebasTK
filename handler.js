@@ -971,7 +971,7 @@ global.db.data.chats[m.chat] = {}
 if (chat) {
 if (!('isBanned' in chat)) chat.isBanned = false         
 if (!('welcome' in chat)) chat.welcome = true           
-if (!('detect' in chat)) chat.detect = false               
+if (!('detect' in chat)) chat.detect = true               
 if (!('sWelcome' in chat)) chat.sWelcome = ''          
 if (!('sBye' in chat)) chat.sBye = ''                    
 if (!('sPromote' in chat)) chat.sPromote = ''             
@@ -1054,9 +1054,9 @@ if (!('autoread' in settings)) settings.autoread = false
 if (!('autoread2' in settings)) settings.autoread2 = false
 if (!('restrict' in settings)) settings.restrict = true
 if (!('temporal' in settings)) settings.temporal = false
-if (!('antiPrivate' in settings)) settings.antiPrivate = true
-if (!('antiCall' in settings)) settings.antiCall = true
-if (!('antiSpam' in settings)) settings.antiSpam = true 
+if (!('antiPrivate' in settings)) settings.antiPrivate = false
+if (!('antiCall' in settings)) settings.antiCall = false
+if (!('antiSpam' in settings)) settings.antiSpam = false 
 if (!('modoia' in settings)) settings.modoia = false
 if (!('jadibotmd' in settings)) settings.jadibotmd = true 
 } else global.db.data.settings[this.user.jid] = {
@@ -1065,8 +1065,8 @@ autoread: false,
 autoread2: false,
 restrict: true,
 temporal: false,
-antiPrivate: true,
-antiCall: true,
+antiPrivate: false,
+antiCall: false,
 antiSpam: true,
 modoia: false, 
 jadibotmd: true,
