@@ -36,77 +36,43 @@ say(`Por Joan-TK`, {
     gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
 })
 
-// Variable para controlar si el proceso ya está en ejecución
 var isRunning = false
 
-// Función asíncrona para iniciar un archivo específico
 async function start(file) {
-    // Verificar si el proceso ya está en ejecución, y si es así, no continuar
-    if (isRunning) return
-    isRunning = true // Marcar que el proceso está en ejecución
-
-    // Obtener la ruta actual del archivo
-    const currentFilePath = new URL(import.meta.url).pathname
-
-    // Configurar los argumentos para ejecutar el archivo, incluyendo los argumentos de la línea de comandos
-    let args = [join(__dirname, file), ...process.argv.slice(2)]
-
-    // Mostrar en la consola los argumentos con una fuente y gradiente específicos
-    say([process.argv[0], ...args].join(' '), {
-        font: 'console',            // Estilo de fuente ('console')
-        align: 'center',            // Alineación del texto en el centro
-        gradient: ['red', 'magenta'] // Gradiente de colores (rojo a magenta)
-    })
-
-    // Configurar el proceso maestro para ejecutar el archivo especificado
-    setupMaster({
-        exec: args[0],         // Archivo a ejecutar
-        args: args.slice(1)    // Argumentos adicionales
-    })
-
-    // Crear un proceso hijo
-    let p = fork()
-
-    // Manejar mensajes enviados desde el proceso hijo
-    p.on('message', data => {
-        switch (data) {
-            // Reiniciar el proceso si se recibe el mensaje 'reset'
-            case 'reset':
-                p.process.kill()     // Terminar el proceso hijo
-                isRunning = false    // Marcar que ya no está en ejecución
-                start.apply(this, arguments) // Reiniciar el proceso
-                break
-            // Enviar el tiempo de actividad del proceso si se recibe el mensaje 'uptime'
-            case 'uptime':
-                p.send(process.uptime()) // Enviar el tiempo de actividad
-                break
-        }
-    })
-}
-
-// Escuchar el evento 'exit' del proceso hijo
-p.on('exit', (_, code) => {
-    // Marcar que el proceso ya no está en ejecución
-    isRunning = false
-
-    // Mostrar un mensaje de error en la consola con el código de salida
-    console.error('⚠️ ERROR ⚠️ >> ', code)
-
-    // Reiniciar el proceso llamando a la función 'start' con el archivo 'main.js'
-    start('main.js')
-
-    // Si el código de salida es 0, terminar la función aquí
-    if (code === 0) return
-
-    // Vigilar el archivo especificado en 'args[0]'
-    watchFile(args[0], () => {
-        // Dejar de vigilar el archivo
-        unwatchFile(args[0])
-
-        // Reiniciar el proceso llamando nuevamente a 'start' con el archivo original
-        start(file)
-    })
+if (isRunning) return
+isRunning = true
+const currentFilePath = new URL(import.meta.url).pathname
+let args = [join(__dirname, file), ...process.argv.slice(2)]
+say([process.argv[0], ...args].join(' '), {
+font: 'console',
+align: 'center',
+gradient: ['red', 'magenta']
 })
+setupMaster({exec: args[0], args: args.slice(1),
+})
+let p = fork()
+p.on('message', data => {
+switch (data) {
+case 'reset':
+p.process.kill()
+isRunning = false
+start.apply(this, arguments)
+break
+case 'uptime':
+p.send(process.uptime())
+break
+}})
+
+p.on('exit', (_, code) => {
+isRunning = false
+console.error('⚠️ ERROR ⚠️ >> ', code)
+start('main.js'); //
+
+if (code === 0) return
+watchFile(args[0], () => {
+unwatchFile(args[0])
+start(file)
+})})
 
 const ramInGB = os.totalmem() / (1024 * 1024 * 1024)
 const freeRamInGB = os.freemem() / (1024 * 1024 * 1024)
