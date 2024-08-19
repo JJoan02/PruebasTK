@@ -1934,54 +1934,24 @@ if (chat.antifake && isBotAdminNn && action === 'add') {
     }
 }
 	
-// Crea un objeto de contacto para enviar un mensaje de vCard
-let fkontak2 = {
-    "key": {
-        "participants": "0@s.whatsapp.net",  // Participante que recibe el mensaje
-        "remoteJid": "status@broadcast",     // ID del grupo o del canal de difusión
-        "fromMe": false,                     // Indica si el mensaje es enviado por el bot mismo
-        "id": "Halo"                         // ID del mensaje
-    },
-    "message": {
-        "contactMessage": {
-            "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Bot;;;\nFN:y\nitem1.TEL;waid=${user.split('@')[0]}:${user.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD`
-            // vCard con información de contacto, incluye el número de WhatsApp del usuario
-        }
-    },
-    "participant": "0@s.whatsapp.net"  // Participante que recibe el mensaje
-};
-
-// Envía un mensaje al grupo con el contenido especificado
-this.sendMessage(
-    id,  // ID del grupo o chat al que se envía el mensaje
-    {
-        text: text,  // Texto del mensaje
-        contextInfo: {
-            forwardingScore: 9999999,  // Puntuación de reenvío para indicar que el mensaje es reenviado
-            isForwarded: true,        // Marca el mensaje como reenviado
-            mentionedJid: [user],     // Menciona al usuario en el mensaje
-            "externalAdReply": {
-                "showAdAttribution": true,          // Muestra atribución del anuncio
-                "renderLargerThumbnail": true,      // Renderiza una miniatura más grande
-                "thumbnail": apii.data,              // Imagen miniatura del mensaje
-                "title": [wm, '💻 𝑺𝒖𝒑𝒆𝒓 ' + gt + ' 💻', '🌟 joanbottk.gmail.com'].getRandom(),  // Título del anuncio
-                "containsAutoReply": true,          // Indica que el mensaje contiene una respuesta automática
-                "mediaType": 1,                     // Tipo de medio (1 para imagen)
-                "sourceUrl": accountsgb ? accountsgb : 'https://github.com/JJoan02/Admin-TK'  // URL de la fuente del anuncio
-            }
-        }
-    },
-    {
-        quoted: fkontak2  // Incluye el objeto de contacto como cita en el mensaje
-    }
-);
-
-// Limpia los datos de la imagen para evitar el uso de memoria innecesario
-apii.data = '';
-
-// La siguiente línea está comentada, pero se puede usar para enviar un archivo
-// this.sendFile(id, apii.data, 'pp.jpg', text, null, false, { mentions: [user] }, { quoted: fkontak2 })
-			    
+let fkontak2 = { "key": { "participants":"0@s.whatsapp.net", "remoteJid": "status@broadcast", "fromMe": false, "id": "Halo" }, "message": { "contactMessage": { "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Bot;;;\nFN:y\nitem1.TEL;waid=${user.split('@')[0]}:${user.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD` }}, "participant": "0@s.whatsapp.net" }      
+this.sendMessage(id, { text: text, 
+contextInfo:{
+forwardingScore: 9999999,
+isForwarded: true, 
+mentionedJid:[user],
+"externalAdReply": {
+"showAdAttribution": true,
+"renderLargerThumbnail": true,
+"thumbnail": apii.data, 
+"title": [wm, '💻 𝑺𝒖𝒑𝒆𝒓 ' + gt + ' 💻', '🌟 joanbottk.gmail.com'].getRandom(),
+"containsAutoReply": true,
+"mediaType": 1, 
+sourceUrl: accountsgb ? accountsgb : 'https://github.com/JJoan02/Admin-TK' }}}, { quoted: fkontak2 })
+apii.data = ''
+//this.sendFile(id, apii.data, 'pp.jpg', text, null, false, { mentions: [user] }, { quoted: fkontak2 })
+}}}
+	    
 break
 case 'promote':
 case 'daradmin':
