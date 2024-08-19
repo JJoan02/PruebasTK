@@ -2155,43 +2155,44 @@ global.dfail = (type, m, conn) => {
     //if (msg) return m.reply(msg);
 }
 	
-// Configura el mensaje a ser reenviado, especificando el mensaje original y el ID del usuario.
-let tg = { quoted: m, userJid: conn.user.jid }
+// Prepara el objeto para el mensaje
+let tg = {
+  quoted: m,
+  userJid: conn.user.jid
+};
 
-// Genera un mensaje de WhatsApp desde el contenido proporcionado, incluyendo un mensaje extendido con información adicional.
-let prep = generateWAMessageFromContent(
-    m.chat, 
-    { 
-        extendedTextMessage: { 
-            text: msg, 
-            contextInfo: { 
-                externalAdReply: { 
-                    title: lenguajeGB.smsAvisoAG().slice(0, -2), // Título del mensaje
-                    body: [wm, '💻 𝑺𝒖𝒑𝒆𝒓 ' + gt + ' 💻', '🌟 joanbottk.gmail.com'].getRandom(), // Cuerpo del mensaje
-                    thumbnail: gataImg, // Imagen en miniatura del mensaje
-                    sourceUrl: accountsgb // URL de origen para el mensaje
-                }
-            }
-        }
-    }, 
-    tg
-)
+// Define el contenido del mensaje de WhatsApp
+let messageContent = {
+  extendedTextMessage: {
+    text: msg,
+    contextInfo: {
+      externalAdReply: {
+        title: lenguajeGB.smsAvisoAG().slice(0, -2),
+        body: [
+          wm,
+          '💻 𝑺𝒖𝒑𝒆𝒓 ' + gt + ' 💻',
+          '🌟 joanbottk.gmail.com'
+        ].getRandom(), // Cuerpo del mensaje
+        thumbnail: gataImg,
+        sourceUrl: accountsgb
+      }
+    }
+  }
+};
 
-// Si el mensaje existe, reenvía el mensaje al chat especificado con el ID del mensaje preparado.
-if (msg) return conn.relayMessage(m.chat, prep.message, { messageId: prep.key.id })
+// Genera el mensaje de WhatsApp
+let prep = generateWAMessageFromContent(m.chat, messageContent, tg);
 
-// Obtiene el nombre del archivo actual y configura el monitoreo para detectar cambios en el archivo.
+// Envía el mensaje si 'msg' está definido
+if (msg) {
+  return conn.relayMessage(m.chat, prep.message, { messageId: prep.key.id });
+}
+
 const file = global.__filename(import.meta.url, true);
-
-// Monitorea el archivo para detectar cambios y actualizar el manejador si es necesario.
 watchFile(file, async () => {
-    // Deja de monitorear el archivo una vez que se detecta un cambio.
-    unwatchFile(file)
-    // Imprime un mensaje en la consola indicando que el archivo 'handler.js' ha sido actualizado.
-    console.log(chalk.redBright('Update \'handler.js\''))
-    // Si hay un manejador de recarga global, se puede mostrar el resultado.
-    //if (global.reloadHandler) console.log(await global.reloadHandler())
-})
+unwatchFile(file)
+console.log(chalk.redBright('Update \'handler.js\''));
+//if (global.reloadHandler) console.log(await global.reloadHandler());
   
 if (global.conns && global.conns.length > 0 ) {
 const users = [...new Set([...global.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED).map((conn) => conn)])];
