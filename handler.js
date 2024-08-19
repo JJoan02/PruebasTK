@@ -978,12 +978,12 @@ if (!('sPromote' in chat)) chat.sPromote = ''
 if (!('sDemote' in chat)) chat.sDemote = '' 
 if (!('sCondition' in chat)) chat.sCondition = JSON.stringify([{ grupo: { usuario: [], condicion: [], admin: '' }, prefijos: []}])
 if (!('delete' in chat)) chat.delete = false                   
-if (!('modohorny' in chat)) chat.modohorny = true       
+if (!('modohorny' in chat)) chat.modohorny = false       
 if (!('stickers' in chat)) chat.stickers = false            
 if (!('autosticker' in chat)) chat.autosticker = false      
-if (!('audios' in chat)) chat.audios = true               
-if (!('antiver' in chat)) chat.antiver = false 
-if (!('antiPorn' in chat)) chat.antiPorn = true     
+if (!('audios' in chat)) chat.audios = false               
+if (!('antiver' in chat)) chat.antiver = true 
+if (!('antiPorn' in chat)) chat.antiPorn = false     
 if (!('antiLink' in chat)) chat.antiLink = false     
 if (!('antiLink2' in chat)) chat.antiLink2 = false
 if (!('antiTiktok' in chat)) chat.antiTiktok = false
@@ -997,14 +997,14 @@ if (!('antiThreads' in chat)) chat.antiThreads = false
 if (!('antiTwitch' in chat)) chat.antiTwitch = false
 if (!('antifake' in chat)) chat.antifake = false
 if (!('reaction' in chat)) chat.reaction = true    
-if (!('viewonce' in chat)) chat.viewonce = false       
-if (!('modoadmin' in chat)) chat.modoadmin = false    
-if (!('antitoxic' in chat)) chat.antitoxic = true
+if (!('viewonce' in chat)) chat.viewonce = true       
+if (!('modoadmin' in chat)) chat.modoadmin = true    
+if (!('antitoxic' in chat)) chat.antitoxic = false
 if (!('game' in chat)) chat.game = true
 if (!('game2' in chat)) chat.game2 = true
 if (!('simi' in chat)) chat.simi = false
 if (!('antiTraba' in chat)) chat.antiTraba = true
-if (!('autolevelup' in chat))  chat.autolevelup = true
+if (!('autolevelup' in chat))  chat.autolevelup = false
 if (!isNumber(chat.expired)) chat.expired = 0
 } else
 global.db.data.chats[m.chat] = {
@@ -1017,12 +1017,12 @@ sPromote: '',
 sDemote: '', 
 sCondition: JSON.stringify([{ grupo: { usuario: [], condicion: [], admin: '' }, prefijos: []}]), 
 delete: false,
-modohorny: true,
+modohorny: false,
 stickers: false,
 autosticker: false,
 audios: false,
 antiver: true,
-antiPorn: true,
+antiPorn: false,
 antiLink: false,
 antiLink2: false,
 antiTiktok: false,
@@ -1036,14 +1036,14 @@ antiThreads: false,
 antiTwitch: false,
 antifake: false,
 reaction: true,
-viewonce: false,
-modoadmin: false,
-antitoxic: true,
+viewonce: true,
+modoadmin: true,
+antitoxic: false,
 game: true, 
 game2: true, 
 simi: false,
 antiTraba: true,
-autolevelup: true,
+autolevelup: false,
 expired: 0,
 }
 let settings = global.db.data.settings[this.user.jid]
@@ -1052,9 +1052,9 @@ if (settings) {
 if (!('self' in settings)) settings.self = false
 if (!('autoread' in settings)) settings.autoread = false
 if (!('autoread2' in settings)) settings.autoread2 = false
-if (!('restrict' in settings)) settings.restrict = false
+if (!('restrict' in settings)) settings.restrict = true
 if (!('temporal' in settings)) settings.temporal = false
-if (!('antiPrivate' in settings)) settings.antiPrivate = false
+if (!('antiPrivate' in settings)) settings.antiPrivate = true
 if (!('antiCall' in settings)) settings.antiCall = true
 if (!('antiSpam' in settings)) settings.antiSpam = true 
 if (!('modoia' in settings)) settings.modoia = false
@@ -1063,9 +1063,9 @@ if (!('jadibotmd' in settings)) settings.jadibotmd = true
 self: false,
 autoread: false,
 autoread2: false,
-restrict: false,
+restrict: true,
 temporal: false,
-antiPrivate: false,
+antiPrivate: true,
 antiCall: true,
 antiSpam: true,
 modoia: false, 
@@ -1074,422 +1074,940 @@ jadibotmd: true,
 console.error(e)
 }
 
-const isROwner = [conn.decodeJid(global.conn.user.id), ...global.owner.map(([number]) => number)].map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
-const isOwner = isROwner || m.fromMe
-const isMods = isOwner || global.mods.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
-//const isPrems = isROwner || global.prems.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
-const isPrems = isROwner || global.db.data.users[m.sender].premiumTime > 0
+// Verifica si el remitente del mensaje es el propietario del bot
+const isROwner = [conn.decodeJid(global.conn.user.id), ...global.owner.map(([number]) => number)]
+    .map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net')
+    .includes(m.sender);
+
+// Verifica si el remitente es el propietario real o si el mensaje proviene del propio bot
+const isOwner = isROwner || m.fromMe;
+
+// Verifica si el remitente es un moderador (mods) o el propietario
+const isMods = isOwner || global.mods
+    .map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net')
+    .includes(m.sender);
+
+// Verifica si el remitente es un usuario premium o el propietario
+// Nota: El código comentado anteriormente verificaba la lista de prems (usuarios premium) de forma diferente
+//const isPrems = isROwner || global.prems.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender);
+
+// Nueva verificación de usuarios premium usando el tiempo premium almacenado en la base de datos
+const isPrems = isROwner || global.db.data.users[m.sender].premiumTime > 0;
+
+// Si la opción 'queque' está habilitada y el mensaje tiene texto, pero el remitente no es ni moderador ni premium
 if (opts['queque'] && m.text && !(isMods || isPrems)) {
-let queque = this.msgqueque, time = 1000 * 5
-const previousID = queque[queque.length - 1]
-queque.push(m.id || m.key.id)
-setInterval(async function () {
-if (queque.indexOf(previousID) === -1) clearInterval(this)
-await delay(time)
-}, time)
+    
+    // Obtiene la cola de mensajes y establece un tiempo de espera de 5 segundos
+    let queque = this.msgqueque, time = 1000 * 5;
+    
+    // Obtiene el ID del mensaje previo en la cola
+    const previousID = queque[queque.length - 1];
+    
+    // Añade el ID del mensaje actual a la cola
+    queque.push(m.id || m.key.id);
+    
+    // Inicia un intervalo para revisar la cola cada 5 segundos
+    setInterval(async function () {
+        // Si el mensaje previo ha sido procesado, se detiene el intervalo
+        if (queque.indexOf(previousID) === -1) clearInterval(this);
+        
+        // Introduce un retraso en la ejecución
+        await delay(time);
+    }, time);
 }
 
+// Si la opción 'nyimak' está activada en 'opts', se detiene la ejecución del código.
 if (opts['nyimak']) return
+
+// Si el usuario no es el propietario del bot y la opción 'self' está activada, se detiene la ejecución del código.
 if (!isROwner && opts['self']) return 
+
+// Si la opción 'pconly' está activada y el chat es un grupo (termina con 'g.us'), se detiene la ejecución del código.
 if (opts['pconly'] && m.chat.endsWith('g.us')) return
+
+// Si la opción 'gconly' está activada y el chat no es un grupo (no termina con 'g.us'), se detiene la ejecución del código.
 if (opts['gconly'] && !m.chat.endsWith('g.us')) return
+
+// Si la opción 'swonly' está activada y el chat no es una transmisión de estado, se detiene la ejecución del código.
 if (opts['swonly'] && m.chat !== 'status@broadcast') return
+
+// Si el texto del mensaje no es una cadena de caracteres, se inicializa como una cadena vacía.
 if (typeof m.text !== 'string')
 m.text = ''
 
+// Si el mensaje es de Baileys, detiene la ejecución del código.
+// Esto puede ser útil para evitar procesar mensajes que provienen de bots o mensajes internos del sistema.
 if (m.isBaileys) return
+
+// Incrementa el valor de 'm.exp' con un número aleatorio entre 1 y 10.
+// Esto podría usarse para dar una pequeña cantidad de experiencia a los usuarios en función de alguna acción.
 m.exp += Math.ceil(Math.random() * 10)
+
+// Declara una variable 'usedPrefix' sin inicializar.
+// Esta variable puede ser utilizada más adelante en el código para almacenar algún prefijo de comando o similar.
 let usedPrefix
+
+// Obtiene el objeto de datos del usuario desde la base de datos global, si existe.
+// La variable '_user' contendrá los datos del usuario que envió el mensaje, o 'undefined' si no hay datos disponibles.
+// 'm.sender' representa el identificador del usuario que envió el mensaje.
 let _user = global.db.data && global.db.data.users && global.db.data.users[m.sender]
 
+// Obtiene los metadatos del grupo si el mensaje es de un grupo.
+// Primero verifica si los metadatos están disponibles en 'conn.chats'.
+// Si no están disponibles, intenta obtenerlos mediante 'this.groupMetadata(m.chat)' y captura cualquier error.
 const groupMetadata = (m.isGroup ? ((conn.chats[m.chat] || {}).metadata || await this.groupMetadata(m.chat).catch(_ => null)) : {}) || {}
+
+// Obtiene la lista de participantes del grupo si el mensaje es de un grupo.
+// Si no es un grupo, se establece como una lista vacía.
 const participants = (m.isGroup ? groupMetadata.participants : []) || []
-const user = (m.isGroup ? participants.find(u => conn.decodeJid(u.id) === m.sender) : {}) || {} // User Data
+
+// Encuentra el objeto del usuario que envió el mensaje en la lista de participantes del grupo, si el mensaje es de un grupo.
+// 'conn.decodeJid(u.id)' decodifica el ID del usuario y lo compara con el ID del remitente del mensaje.
+// Si no es un grupo, se establece como un objeto vacío.
+const user = (m.isGroup ? participants.find(u => conn.decodeJid(u.id) === m.sender) : {}) || {} // Datos del Usuario
+
+// Encuentra el objeto del bot en la lista de participantes del grupo, si el mensaje es de un grupo.
+// 'conn.decodeJid(u.id)' decodifica el ID del usuario y lo compara con el ID del bot.
+// Si no es un grupo, se establece como un objeto vacío.
 const bot = (m.isGroup ? participants.find(u => conn.decodeJid(u.id) == this.user.jid) : {}) || {}
+
+// Determina si el usuario que envió el mensaje es un superadministrador.
+// Verifica si 'user.admin' es igual a 'superadmin', y si no, se establece como 'false'.
 const isRAdmin = user?.admin == 'superadmin' || false
-const isAdmin = isRAdmin || user?.admin == 'admin' || false //user admins? 
-const isBotAdmin = bot?.admin || false //Detecta sin el bot es admin
 
+// Determina si el usuario que envió el mensaje es un administrador.
+// Verifica si el usuario es un superadministrador o si 'user.admin' es igual a 'admin'.
+// Si ninguna de las condiciones es verdadera, se establece como 'false'.
+const isAdmin = isRAdmin || user?.admin == 'admin' || false // ¿El usuario es administrador?
+
+// Determina si el bot es un administrador en el grupo.
+// Verifica si 'bot.admin' existe y si es verdadero. Si no, se establece como 'false'.
+const isBotAdmin = bot?.admin || false // Detecta si el bot es administrador
+
+// Obtiene la ruta del directorio 'plugins' a partir del archivo actual.
+// 'fileURLToPath(import.meta.url)' convierte la URL del módulo en una ruta de archivo.
+// 'path.dirname' obtiene el directorio del archivo actual.
+// 'path.join' une el directorio con el subdirectorio 'plugins'.
 const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins')
+
+// Itera sobre todos los plugins en 'global.plugins'.
 for (let name in global.plugins) {
-let plugin = global.plugins[name]
-if (!plugin)
-continue
-if (plugin.disabled)
-continue
-const __filename = join(___dirname, name)
-if (typeof plugin.all === 'function') {
-try {
-await plugin.all.call(this, m, {
-chatUpdate,
-__dirname: ___dirname,
-__filename
-})
-} catch (e) {
-// if (typeof e === 'string') continue
-console.error(e)
-for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
-let data = (await conn.onWhatsApp(jid))[0] || {}
-if (data.exists)
-m.reply(`${lenguajeGB['smsCont1']()}\n\n${lenguajeGB['smsCont2']()}\n*_${name}_*\n\n${lenguajeGB['smsCont3']()}\n*_${m.sender}_*\n\n${lenguajeGB['smsCont4']()}\n*_${m.text}_*\n\n${lenguajeGB['smsCont5']()}\n\`\`\`${format(e)}\`\`\`\n\n${lenguajeGB['smsCont6']()}`.trim(), data.jid)
-}}}
-if (!opts['restrict'])
-if (plugin.tags && plugin.tags.includes('admin')) {
-// global.dfail('restrict', m, this)
-continue
+    let plugin = global.plugins[name]
+    
+    // Si el plugin no existe, continúa con el siguiente en la lista.
+    if (!plugin)
+        continue
+    
+    // Si el plugin está deshabilitado, continúa con el siguiente en la lista.
+    if (plugin.disabled)
+        continue
+    
+    // Obtiene la ruta completa del archivo del plugin.
+    const __filename = join(___dirname, name)
+    
+    // Si el plugin tiene una función 'all', intenta ejecutarla.
+    if (typeof plugin.all === 'function') {
+        try {
+            // Llama a la función 'all' del plugin con el contexto adecuado y los parámetros necesarios.
+            await plugin.all.call(this, m, {
+                chatUpdate,
+                __dirname: ___dirname,
+                __filename
+            })
+        } catch (e) {
+            // Captura y muestra cualquier error que ocurra durante la ejecución de la función 'all'.
+            console.error(e)
+            
+            // Notifica a los propietarios del bot si ocurre un error.
+            for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
+                let data = (await conn.onWhatsApp(jid))[0] || {}
+                
+                // Si el número de WhatsApp existe, envía un mensaje con detalles del error.
+                if (data.exists)
+                    m.reply(`${lenguajeGB['smsCont1']()}\n\n${lenguajeGB['smsCont2']()}\n*_${name}_*\n\n${lenguajeGB['smsCont3']()}\n*_${m.sender}_*\n\n${lenguajeGB['smsCont4']()}\n*_${m.text}_*\n\n${lenguajeGB['smsCont5']()}\n\`\`\`${format(e)}\`\`\`\n\n${lenguajeGB['smsCont6']()}`.trim(), data.jid)
+            }
+        }
+    }
+    
+    // Si la opción 'restrict' no está activada y el plugin tiene la etiqueta 'admin', continúa con el siguiente plugin.
+    if (!opts['restrict'])
+        if (plugin.tags && plugin.tags.includes('admin')) {
+            // Se omite la llamada a 'global.dfail' que podría usarse para manejar restricciones.
+            // global.dfail('restrict', m, this)
+            continue
+        }
 }
+// Función para escapar caracteres especiales en una cadena para usar en una expresión regular.
+// Esto asegura que caracteres como |, \, {, }, (, ), [, ], ^, $, +, *, ?, . sean tratados como literales.
 const str2Regex = str => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
+
+// Determina el prefijo a usar para el plugin.
+// Si el plugin tiene un prefijo personalizado, se usa ese prefijo.
+// Si no, se usa el prefijo del objeto 'conn' (que puede ser el prefijo del bot configurado).
+// Si ninguno de los anteriores está definido, se usa el prefijo global.
 let _prefix = plugin.customPrefix ? plugin.customPrefix : conn.prefix ? conn.prefix : global.prefix
-let match = (_prefix instanceof RegExp ? // RegExp Mode?
-[[_prefix.exec(m.text), _prefix]] :
-Array.isArray(_prefix) ? // Array?
-_prefix.map(p => {
-let re = p instanceof RegExp ? // RegExp in Array?
-p :
-new RegExp(str2Regex(p))
-return [re.exec(m.text), re]
-}) :
-typeof _prefix === 'string' ? // String?
-[[new RegExp(str2Regex(_prefix)).exec(m.text), new RegExp(str2Regex(_prefix))]] :
-[[[], new RegExp]]
-).find(p => p[1])
+
+// Determina si el prefijo es una expresión regular, un array, o una cadena y realiza una búsqueda en el texto del mensaje (m.text).
+// Si es una expresión regular, se ejecuta directamente.
+// Si es un array, se ejecuta cada expresión regular o cadena convertida a expresión regular.
+// Si es una cadena, se convierte a expresión regular.
+let match = (_prefix instanceof RegExp ? // Modo Expresión Regular?
+    [[_prefix.exec(m.text), _prefix]] :
+    Array.isArray(_prefix) ? // ¿Es un Array?
+        _prefix.map(p => {
+            let re = p instanceof RegExp ? // ¿Es una Expresión Regular en el Array?
+                p :
+                new RegExp(str2Regex(p)) // Convierte la cadena a expresión regular.
+            return [re.exec(m.text), re]
+        }) :
+        typeof _prefix === 'string' ? // ¿Es una Cadena?
+            [[new RegExp(str2Regex(_prefix)).exec(m.text), new RegExp(str2Regex(_prefix))]] :
+            [[[], new RegExp]]
+).find(p => p[1]) // Encuentra la primera coincidencia que tenga una expresión regular válida.
+
+// Si el plugin tiene una función 'before', la ejecuta antes de procesar el comando.
+// 'plugin.before' debe ser una función que se llama con el contexto adecuado y parámetros relevantes.
 if (typeof plugin.before === 'function') {
-if (await plugin.before.call(this, m, {
-match,
-conn: this,
-participants,
-groupMetadata,
-user,
-bot,
-isROwner,
-isOwner,
-isRAdmin,
-isAdmin,
-isBotAdmin,
-isPrems,
-chatUpdate,
-__dirname: ___dirname,
-__filename
-}))
-continue
+    if (await plugin.before.call(this, m, {
+        match,                  // Coincidencias encontradas.
+        conn: this,             // Objeto de conexión del bot.
+        participants,           // Participantes del grupo.
+        groupMetadata,          // Metadatos del grupo.
+        user,                   // Datos del usuario que envió el mensaje.
+        bot,                    // Datos del bot en el grupo.
+        isROwner,               // Verifica si el usuario es el propietario real.
+        isOwner,                // Verifica si el usuario es el propietario del bot.
+        isRAdmin,               // Verifica si el usuario es un superadministrador.
+        isAdmin,                // Verifica si el usuario es administrador.
+        isBotAdmin,             // Verifica si el bot es administrador.
+        isPrems,                // Verifica si el usuario tiene permisos especiales.
+        chatUpdate,             // Información de actualización del chat.
+        __dirname: ___dirname,  // Directorio del plugin.
+        __filename              // Archivo del plugin.
+    }))
+        continue
 }
+// Verifica si 'plugin' no es una función y continúa con la siguiente iteración del bucle si es así.
+// Esto asegura que solo se procesen los elementos en 'global.plugins' que son funciones.
 if (typeof plugin !== 'function')
-continue
-if ((usedPrefix = (match[0] || '')[0])) {
-let noPrefix = m.text.replace(usedPrefix, '')
-let [command, ...args] = noPrefix.trim().split` `.filter(v => v)
-args = args || []
-let _args = noPrefix.trim().split` `.slice(1)
-let text = _args.join` `
-command = (command || '').toLowerCase()
-let fail = plugin.fail || global.dfail // When failed
-let isAccept = plugin.command instanceof RegExp ? // RegExp Mode?
-plugin.command.test(command) :
-Array.isArray(plugin.command) ? // Array?
-plugin.command.some(cmd => cmd instanceof RegExp ? // RegExp in Array?
-cmd.test(command) :
-cmd === command
-) :
-typeof plugin.command === 'string' ? // String?
-plugin.command === command :
-false
+    continue
 
-if (!isAccept)
-continue
-m.plugin = name
-if (m.chat in global.db.data.chats || m.sender in global.db.data.users) {
-let chat = global.db.data.chats[m.chat]
-let user = global.db.data.users[m.sender]
-if (!['owner-unbanchat.js'].includes(name) && chat && chat.isBanned && !isROwner) return // Except this
-if (name != 'owner-unbanchat.js' && name != 'owner-exec.js' && name != 'owner-exec2.js' && name != 'tool-delete.js' && chat?.isBanned && !isROwner) return 
-if (m.text && user.banned && !isROwner) {
-if (user.antispam > 2) return
-m.reply(`🚫 *ESTÁ BANEADO(A), NO PUEDE USAR LOS COMANDOS*\n📑 *MOTIVO: ${user.messageSpam === 0 ? 'NO ESPECIFICADO' : user.messageSpam}*\n⚠️ \`\`\`SI ESTE BOT ES CUENTA OFICIAL Y TIENE EVIDENCIA QUE RESPALDE QUE ESTE MENSAJE ES UN ERROR, PUEDE EXPONER SU CASO EN:\`\`\`👉 *${ig}*\n👉 ${asistencia}`)
-user.antispam++	
-return
+// Asigna el primer carácter del prefijo utilizado (si existe) a 'usedPrefix'.
+if ((usedPrefix = (match[0] || '')[0])) {
+    // Elimina el prefijo del texto del mensaje para obtener el comando y los argumentos.
+    let noPrefix = m.text.replace(usedPrefix, '')
+    
+    // Divide el texto sin prefijo en partes, asigna el primer elemento a 'command' y el resto a 'args'.
+    // 'filter(v => v)' elimina elementos vacíos.
+    let [command, ...args] = noPrefix.trim().split` `.filter(v => v)
+    
+    // Asegura que 'args' no sea null o undefined.
+    args = args || []
+    
+    // Obtiene los argumentos del comando y los une en una cadena 'text'.
+    let _args = noPrefix.trim().split` `.slice(1)
+    let text = _args.join` `
+    
+    // Convierte el comando a minúsculas para asegurar la comparación sin distinción entre mayúsculas y minúsculas.
+    command = (command || '').toLowerCase()
+    
+    // Obtiene la función de manejo de fallos del plugin o usa la función global 'dfail' si no está definida.
+    let fail = plugin.fail || global.dfail // En caso de fallo
+    
+    // Determina si el comando es aceptable según el tipo de 'plugin.command'.
+    // Verifica si 'plugin.command' es una expresión regular, un array de expresiones regulares o cadenas, o una cadena simple.
+    let isAccept = plugin.command instanceof RegExp ? // ¿Modo Expresión Regular?
+        plugin.command.test(command) :
+        Array.isArray(plugin.command) ? // ¿Es un Array?
+            plugin.command.some(cmd => cmd instanceof RegExp ? // ¿Expresión Regular en el Array?
+                cmd.test(command) :
+                cmd === command
+            ) :
+            typeof plugin.command === 'string' ? // ¿Es una Cadena?
+                plugin.command === command :
+                false
 }
 
-//Antispam 2		
+// Si el comando no es aceptado, continúa con la siguiente iteración del bucle.
+// Esto evita que se procese el mensaje si el comando no cumple con los criterios de aceptación.
+if (!isAccept)
+    continue
+
+// Asigna el nombre del plugin que se está procesando a la propiedad 'm.plugin'.
+m.plugin = name
+
+// Verifica si el chat o el remitente están en la base de datos.
+if (m.chat in global.db.data.chats || m.sender in global.db.data.users) {
+    // Obtiene la información del chat y del usuario desde la base de datos.
+    let chat = global.db.data.chats[m.chat]
+    let user = global.db.data.users[m.sender]
+
+    // Si el plugin no es uno de los excluidos y el chat está baneado y el usuario no es el propietario,
+    // entonces no se permite el uso del plugin para ese chat.
+    if (!['owner-unbanchat.js'].includes(name) && chat && chat.isBanned && !isROwner) return // Excepto esto
+
+    // Si el nombre del plugin no está en la lista de excepciones y el chat está baneado y el usuario no es el propietario,
+    // entonces no se permite el uso del plugin para ese chat.
+    if (name != 'owner-unbanchat.js' && name != 'owner-exec.js' && name != 'owner-exec2.js' && name != 'tool-delete.js' && chat?.isBanned && !isROwner) return 
+    
+    // Si el mensaje tiene texto y el usuario está baneado y no es el propietario,
+    // realiza las siguientes acciones.
+    if (m.text && user.banned && !isROwner) {
+        // Si el contador de antispam del usuario es mayor que 2, no se permite el uso del comando.
+        if (user.antispam > 2) return
+        
+        // Envía un mensaje al usuario indicando que está baneado y no puede usar los comandos.
+        // Proporciona el motivo del baneo y un enlace para exponer su caso si cree que es un error.
+        m.reply(`🚫 *¡OH NO! ESTÁS EN EL BANLISTA* 🚫\n\n😂 *PARECE QUE TE HAN BANEADO* 😂\n*¿MOTIVO?* 🤔 *${user.messageSpam === 0 ? 'NO ESPECIFICADO, PERO SEGURAMENTE HICISTE ALGO DIVERTIDO' : user.messageSpam}*\n\n🤯 *¡CUANDO TE BANEARON, EL BOT TAMBIÉN SE RÍÓ!* 🤯\n\n👉 *SI CREES QUE ESTO ES UN ERROR* 👉\n👉 *¿Tienes pruebas? Puedes exponer tu caso en:* 👉\n*${ig}*\n*Y si eso no funciona, siempre está ${asistencia} para escuchar tus quejas* 🤷‍♂️\n\n🛑 *No intentes evadir el baneo o tendrás que enfrentar al * *BOT RÍE* 🤣*`)
+        
+        // Incrementa el contador de antispam del usuario.
+        user.antispam++    
+        
+        // Termina la ejecución del código para el usuario baneado.
+        return
+    }
+}
+
+// Antispam 2
+// Si el usuario tiene activado el antispam2 y es el propietario (ROwner), se omite el control de spam.
 if (user.antispam2 && isROwner) return
+
+// Calcula el nuevo tiempo permitiendo el envío de mensajes.
+// Se agrega 3000 milisegundos (3 segundos) al último tiempo registrado.
 let time = global.db.data.users[m.sender].spam + 3000
-if (new Date - global.db.data.users[m.sender].spam < 3000) return console.log(`[ SPAM ]`) 
+
+// Verifica si el tiempo transcurrido desde el último mensaje es menor a 3000 milisegundos (3 segundos).
+// Si es así, considera el mensaje como spam y muestra un mensaje en la consola.
+if (new Date - global.db.data.users[m.sender].spam < 3000) return console.log(`[ SPAM ]`)
+
+// Actualiza el tiempo del último mensaje para el usuario con la fecha actual en milisegundos.
 global.db.data.users[m.sender].spam = new Date * 1
 }
-		
+
+// Define el prefijo a utilizar para identificar comandos.
 let hl = _prefix 
+
+// Obtiene el modo de administración del grupo desde la base de datos.
 let adminMode = global.db.data.chats[m.chat].modoadmin
+
+// Define una variable 'gata' que verifica si alguno de los plugins está activo o si el comando coincide con el prefijo.
 let gata = `${plugins.botAdmin || plugins.admin || plugins.group || plugins || noPrefix || hl ||  m.text.slice(0, 1) == hl || plugins.command}`
+
+// Si el modo de administración está activado, el usuario no es el propietario del bot (isOwner), 
+// no es el propietario del bot (isROwner), está en un grupo (m.isGroup), 
+// no es un administrador del grupo (isAdmin), y 'gata' tiene un valor,
+// entonces se detiene la ejecución del código.
 if (adminMode && !isOwner && !isROwner && m.isGroup && !isAdmin && gata) return   
-if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { //número bot owner
-fail('owner', m, this)
-continue
+
+// Si el plugin tiene un propietario ('rowner') y un propietario definido ('owner'), 
+// y el usuario que envió el mensaje no es ni el propietario del bot ni el propietario del bot,
+// se llama a la función 'fail' con el mensaje 'owner' y se continúa con la siguiente iteración.
+if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { // número bot owner
+    fail('owner', m, this) // Llama a la función 'fail' con el tipo 'owner'.
+    continue // Continua con la siguiente iteración del bucle.
 }
-if (plugin.rowner && !isROwner) { //Owner
-fail('rowner', m, this)
-continue
-}
-if (plugin.owner && !isOwner) { //Propietario/Owner
-fail('owner', m, this)
-continue
-}
-if (plugin.mods && !isMods) { // Moderator
-fail('mods', m, this)
-continue
-}
-if (plugin.premium && !isPrems) { // Premium
-fail('premium', m, this)
-continue
-}
-if (plugin.group && !m.isGroup) { //Solo el grupo
-fail('group', m, this)
-continue
-} else if (plugin.botAdmin && !isBotAdmin) { //Detecta si el bot es admins
-fail('botAdmin', m, this)
-continue
-} else if (plugin.admin && !isAdmin) { //admins
-fail('admin', m, this)
-continue
-}
-if (plugin.private && m.isGroup) { //Solo chat privado
-fail('private', m, this)
-continue
-}
-if (plugin.register == true && _user.registered == false) { // user registrado? 
-fail('unreg', m, this)
-continue
+// Verifica si el usuario es el propietario del bot y si no es un ROwner (propietario de alto nivel).
+if (plugin.rowner && !isROwner) { // Propietario de bot de alto nivel
+    fail('rowner', m, this) // Llama a la función 'fail' con el tipo 'rowner'.
+    continue // Continúa con la siguiente iteración del bucle.
 }
 
-m.isCommand = true
-let xp = 'exp' in plugin ? parseInt(plugin.exp) : 10 // Ganancia de XP por comando
+// Verifica si el usuario es el propietario del bot y si no es un Owner (propietario).
+if (plugin.owner && !isOwner) { // Propietario del bot
+    fail('owner', m, this) // Llama a la función 'fail' con el tipo 'owner'.
+    continue // Continúa con la siguiente iteración del bucle.
+}
+
+// Verifica si el usuario tiene el rol de moderador y si no es un Mods (moderador).
+if (plugin.mods && !isMods) { // Moderador
+    fail('mods', m, this) // Llama a la función 'fail' con el tipo 'mods'.
+    continue // Continúa con la siguiente iteración del bucle.
+}
+
+// Verifica si el usuario tiene una suscripción premium y si no es Premium.
+if (plugin.premium && !isPrems) { // Premium
+    fail('premium', m, this) // Llama a la función 'fail' con el tipo 'premium'.
+    continue // Continúa con la siguiente iteración del bucle.
+}
+// Verifica si el comando está restringido a grupos y si el mensaje no está en un grupo.
+if (plugin.group && !m.isGroup) { // Solo en grupo
+    fail('group', m, this) // Llama a la función 'fail' con el tipo 'group'.
+    continue // Continúa con la siguiente iteración del bucle.
+} else if (plugin.botAdmin && !isBotAdmin) { // Detecta si el bot es administrador y si no lo es.
+    fail('botAdmin', m, this) // Llama a la función 'fail' con el tipo 'botAdmin'.
+    continue // Continúa con la siguiente iteración del bucle.
+} else if (plugin.admin && !isAdmin) { // Detecta si el usuario es administrador y si no lo es.
+    fail('admin', m, this) // Llama a la función 'fail' con el tipo 'admin'.
+    continue // Continúa con la siguiente iteración del bucle.
+}
+
+// Verifica si el comando está restringido a chats privados y si el mensaje está en un grupo.
+if (plugin.private && m.isGroup) { // Solo en chat privado
+    fail('private', m, this) // Llama a la función 'fail' con el tipo 'private'.
+    continue // Continúa con la siguiente iteración del bucle.
+}
+
+// Verifica si el comando requiere que el usuario esté registrado y si el usuario no está registrado.
+if (plugin.register == true && _user.registered == false) { // Usuario registrado
+    fail('unreg', m, this) // Llama a la función 'fail' con el tipo 'unreg'.
+    continue // Continúa con la siguiente iteración del bucle.
+}
+
+m.isCommand = true // Marca el mensaje como un comando
+
+// Define la cantidad de XP ganada por comando, por defecto 10
+let xp = 'exp' in plugin ? parseInt(plugin.exp) : 10
+
+// Verifica si la cantidad de XP es mayor que 2000
 if (xp > 2000)
-m.reply('Exp limit') // Hehehe
+    m.reply('Exp limit') // Responde con un mensaje de límite de XP
 else               
+// Verifica si el usuario no es premium y necesita cierta cantidad de dinero para ejecutar el comando
 if (!isPrems && plugin.money && global.db.data.users[m.sender].money < plugin.money * 1) {
-//this.reply(m.chat, `🐈 𝙉𝙊 𝙏𝙄𝙀𝙉𝙀 𝙂𝘼𝙏𝘼𝘾𝙊𝙄𝙉𝙎`, m)
-this.sendMessage(m.chat, {text: `🐈 𝙉𝙊 𝙏𝙄𝙀𝙉𝙀 𝙂𝘼𝙏𝘼𝘾𝙊𝙄𝙉𝙎`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 😻 𝗦𝘂𝗽𝗲𝗿 𝗚𝗮𝘁𝗮𝗕𝗼𝘁-𝗠𝗗 - 𝗪𝗵𝗮𝘁𝘀𝗔𝗽𝗽 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
-continue     
+// Envia un mensaje al usuario indicando que no tiene suficiente dinero (JoanCoins)
+    this.sendMessage(m.chat, {text: `💸💔 ¡Uy, parece que tus 🪙 *𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔* se han ido de vacaciones! 😹🌴\n\n🔍 ¡Checa tu saldo y vuelve cuando tengas más monedas para jugar! 😜👋\n\nMientras tanto, si quieres ser el *rey de las 𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔*, prueba *superar el desafío* en nuestra tienda: ${gt}! 🎉👑\n\n🔗 *[Ver tienda]*(${accountsgb})`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 💻 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 - 𝑾𝒉𝒂𝒕𝒔𝒂𝒑𝒑 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
+    continue // Continúa con la siguiente iteración del bucle
 }
-			
+
+// Añade la experiencia (xp) al valor actual de m.exp
 m.exp += xp
+
+// Verifica si el usuario no es un premium y si el límite de usuario es menor que el límite requerido por el plugin
 if (!isPrems && plugin.limit && global.db.data.users[m.sender].limit < plugin.limit * 1) {
-this.sendMessage(m.chat, {text: `${lenguajeGB['smsCont7']()} *${usedPrefix}buy*`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 😻 𝗦𝘂𝗽𝗲𝗿 𝗚𝗮𝘁𝗮𝗕𝗼𝘁-𝗠𝗗 - 𝗪𝗵𝗮𝘁𝘀𝗔𝗽𝗽 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
-//this.reply(m.chat, `${lenguajeGB['smsCont7']()} *${usedPrefix}buy*`, m)
-continue //Sin límite
+    // Envía un mensaje indicando que el usuario necesita comprar más límites
+    this.sendMessage(m.chat, {
+        text: `${lenguajeGB['smsCont7']()} *${usedPrefix}buy*`,
+        contextInfo: {
+            externalAdReply: {
+                mediaUrl: null,
+                mediaType: 1,
+                description: null,
+                title: gt,
+                body: ' 💻 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 - 𝑾𝒉𝒂𝒕𝒔𝒂𝒑𝒑 ',
+                previewType: 0,
+                thumbnail: gataImg,
+                sourceUrl: accountsgb
+            }
+        }
+    }, { quoted: m })
+    // Continúa con la siguiente iteración sin aplicar el comando
+    continue // Sin límite
 }
+
+// Verifica si el nivel del plugin es mayor que el nivel del usuario
 if (plugin.level > _user.level) {
-this.sendMessage(m.chat, {text: `${lenguajeGB['smsCont9']()} *${plugin.level}* ${lenguajeGB['smsCont10']()} *${_user.level}* ${lenguajeGB['smsCont11']()} *${usedPrefix}nivel*`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 😻 𝗦𝘂𝗽𝗲𝗿 𝗚𝗮𝘁𝗮𝗕𝗼𝘁-𝗠𝗗 - 𝗪𝗵𝗮𝘁𝘀𝗔𝗽𝗽 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
-//this.reply(m.chat, `${lenguajeGB['smsCont9']()} *${plugin.level}* ${lenguajeGB['smsCont10']()} *${_user.level}* ${lenguajeGB['smsCont11']()} *${usedPrefix}nivel*`, m)
-continue // Si no se ha alcanzado el nivel
+    // Envía un mensaje indicando la diferencia de niveles
+    this.sendMessage(m.chat, {
+        text: `${lenguajeGB['smsCont9']()} *${plugin.level}* ${lenguajeGB['smsCont10']()} *${_user.level}* ${lenguajeGB['smsCont11']()} *${usedPrefix}nivel*`,
+        contextInfo: {
+            externalAdReply: {
+                mediaUrl: null,
+                mediaType: 1,
+                description: null,
+                title: gt,
+                body: ' 💻 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 - 𝑾𝒉𝒂𝒕𝒔𝒂𝒑𝒑 ',
+                previewType: 0,
+                thumbnail: gataImg,
+                sourceUrl: accountsgb
+            }
+        }
+    }, { quoted: m })
+    // Continúa con la siguiente iteración si el nivel no se ha alcanzado
+    continue // Si no se ha alcanzado el nivel
 }
 let extra = {
-match,
-usedPrefix,
-noPrefix,
-_args,
-args,
-command,
-text,
-conn: this,
-participants,
-groupMetadata,
-user,
-bot,
-isROwner,
-isOwner,
-isRAdmin,
-isAdmin,
-isBotAdmin,
-isPrems,
-chatUpdate,
-__dirname: ___dirname,
-__filename
+    // Coincidencia encontrada por el comando o patrón
+    match,
+
+    // Prefijo usado para invocar el comando
+    usedPrefix,
+
+    // Prefijo no usado (posiblemente usado para comandos sin prefijo)
+    noPrefix,
+
+    // Argumentos originales del comando
+    _args,
+
+    // Argumentos procesados del comando
+    args,
+
+    // Nombre del comando que se está ejecutando
+    command,
+
+    // Texto completo del mensaje o comando
+    text,
+
+    // Referencia al objeto de conexión o contexto
+    conn: this,
+
+    // Lista de participantes en el grupo
+    participants,
+
+    // Metadatos del grupo (información sobre el grupo)
+    groupMetadata,
+
+    // Información del usuario que envía el mensaje
+    user,
+
+    // Información del bot que está ejecutando el comando
+    bot,
+
+    // Indica si el usuario es el propietario del bot
+    isROwner,
+
+    // Indica si el usuario es el propietario del grupo
+    isOwner,
+
+    // Indica si el usuario es un administrador de rango
+    isRAdmin,
+
+    // Indica si el usuario es un administrador
+    isAdmin,
+
+    // Indica si el bot es un administrador
+    isBotAdmin,
+
+    // Indica si el usuario tiene un estatus de premium
+    isPrems,
+
+    // Actualización del estado del chat (como cambios en los participantes)
+    chatUpdate,
+
+    // Nombre del directorio actual
+    __dirname: ___dirname,
+
+    // Nombre del archivo actual
+    __filename
 }
 try {
-await plugin.call(this, m, extra)
-if (!isPrems)
-m.limit = m.limit || plugin.limit || false
-m.money = m.money || plugin.money || false
+    // Intenta llamar al plugin con los parámetros dados
+    await plugin.call(this, m, extra);
+
+    // Si el usuario no tiene permisos (no es un admin o similar)
+    if (!isPrems) {
+        // Configura los límites y el dinero de 'm' con valores del plugin o false si no están definidos
+        m.limit = m.limit || plugin.limit || false;
+        m.money = m.money || plugin.money || false;
+    }
 } catch (e) {
-// Error occured
-m.error = e
-console.error(e)
-if (e) {
-let text = format(e)
-for (let key of Object.values(global.APIKeys))
-text = text.replace(new RegExp(key, 'g'), '#HIDDEN#')
-if (e.name)
-for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
-let data = (await conn.onWhatsApp(jid))[0] || {}
-if (data.exists)
-m.reply(`${lenguajeGB['smsCont1']()}\n\n${lenguajeGB['smsCont2']()}\n*_${name}_*\n\n${lenguajeGB['smsCont3']()}\n*_${m.sender}_*\n\n${lenguajeGB['smsCont4']()}\n*_${m.text}_*\n\n${lenguajeGB['smsCont5']()}\n\`\`\`${format(e)}\`\`\`\n\n${lenguajeGB['smsCont6']()}`.trim(), data.jid)
+    // Si ocurre un error, se ejecuta esta sección
+    m.error = e; // Guarda el error en el objeto 'm'
+    console.error(e); // Muestra el error en la consola
+
+    if (e) {
+        // Si hay un error, se procesa el texto del error
+        let text = format(e);
+
+        // Reemplaza las claves de la API con '#HIDDEN#' en el texto del error
+        for (let key of Object.values(global.APIKeys)) {
+            text = text.replace(new RegExp(key, 'g'), '#HIDDEN#');
+        }
+
+        // Si el error tiene un nombre, se notifica a los desarrolladores
+        if (e.name) {
+            // Recorre los IDs de los desarrolladores
+            for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
+                // Obtiene la información del número de WhatsApp
+                let data = (await conn.onWhatsApp(jid))[0] || {};
+
+                if (data.exists) {
+                    // Envía un mensaje al desarrollador con detalles del error
+                    m.reply(`${lenguajeGB['smsCont1']()}\n\n${lenguajeGB['smsCont2']()}\n*_${name}_*\n\n${lenguajeGB['smsCont3']()}\n*_${m.sender}_*\n\n${lenguajeGB['smsCont4']()}\n*_${m.text}_*\n\n${lenguajeGB['smsCont5']()}\n\`\`\`${format(e)}\`\`\`\n\n${lenguajeGB['smsCont6']()}`.trim(), data.jid);
+                }
+            }
+        }
+    }
 }
-m.reply(text)
-}} finally {
-// m.reply(util.format(_user))
-if (typeof plugin.after === 'function') {
 try {
-await plugin.after.call(this, m, extra)
-} catch (e) {
-console.error(e)
-}}
-if (m.limit)
-m.reply(+m.limit + lenguajeGB.smsCont8())
-}
-if (m.money)
-m.reply(+m.money + ' 𝙂𝘼𝙏𝘼𝘾𝙊𝙄𝙉𝙎 🐱 𝙐𝙎𝘼𝘿𝙊(𝙎)')  
-break
-}}} catch (e) {
-console.error(e)
+    // Envía el texto al chat
+    m.reply(text);
 } finally {
-if (opts['queque'] && m.text) {
-const quequeIndex = this.msgqueque.indexOf(m.id || m.key.id)
-if (quequeIndex !== -1)
-this.msgqueque.splice(quequeIndex, 1)
+    // Bloque 'finally' se ejecuta siempre, haya habido un error o no
+
+    // Verifica si existe una función 'after' en el plugin y la ejecuta
+    if (typeof plugin.after === 'function') {
+        try {
+            // Llama a la función 'after' del plugin con el contexto y parámetros dados
+            await plugin.after.call(this, m, extra);
+        } catch (e) {
+            // Si ocurre un error al ejecutar la función 'after', lo muestra en la consola
+            console.error(e);
+        }
+    }
+
+    // Si 'm.limit' está definido, envía un mensaje con el límite y un texto de lenguaje
+    if (m.limit) {
+        m.reply(+m.limit + lenguajeGB.smsCont8());
+    }
+
+    // Si 'm.money' está definido, envía un mensaje con el dinero y un texto específico
+    if (m.money) {
+        m.reply(+m.money + ' 𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔 💻 𝒖𝒔𝒂𝒅𝒐(𝒔)');
+    }
+
+    // Sale del bloque de control
+    break;
+} catch (e) {
+    // Si ocurre un error en cualquier parte del bloque 'try', lo muestra en la consola
+    console.error(e);
+} finally {
+    // Otro bloque 'finally' que se ejecuta siempre, haya habido un error o no
+
+    // Verifica si la opción 'queque' está activada y si 'm.text' tiene un valor
+    if (opts['queque'] && m.text) {
+        // Busca el índice del mensaje en la cola de mensajes
+        const quequeIndex = this.msgqueque.indexOf(m.id || m.key.id);
+        // Si el mensaje está en la cola, lo elimina
+        if (quequeIndex !== -1) {
+            this.msgqueque.splice(quequeIndex, 1);
+        }
+    }
 }
-//console.log(global.db.data.users[m.sender])
-let user, stats = global.db.data.stats
-if (m) { let utente = global.db.data.users[m.sender]
-if (utente.muto == true) {
-let bang = m.key.id
-let cancellazzione = m.key.participant
-await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: cancellazzione }})
-}
-if (m.sender && (user = global.db.data.users[m.sender])) {
-user.exp += m.exp
-user.limit -= m.limit * 1
-user.money -= m.money * 1
+// Imprime los datos del usuario en la consola (comentado)
+// console.log(global.db.data.users[m.sender])
+
+// Declara variables para el usuario y las estadísticas
+let user, stats = global.db.data.stats;
+
+// Verifica si el objeto 'm' existe
+if (m) {
+    // Obtiene los datos del usuario desde la base de datos usando el identificador del remitente
+    let utente = global.db.data.users[m.sender];
+    
+    // Verifica si el usuario está en estado de silencio (muto)
+    if (utente.muto == true) {
+        // Obtiene el ID del mensaje y el participante asociado
+        let bang = m.key.id;
+        let cancellazzione = m.key.participant;
+        
+        // Envía un mensaje para eliminar el mensaje específico del chat
+        await conn.sendMessage(m.chat, {
+            delete: { 
+                remoteJid: m.chat, 
+                fromMe: false, 
+                id: bang, 
+                participant: cancellazzione 
+            }
+        });
+    }
+
+    // Verifica si el remitente existe en la base de datos
+    if (m.sender && (user = global.db.data.users[m.sender])) {
+        // Incrementa la experiencia del usuario con el valor de 'm.exp'
+        user.exp += m.exp;
+        
+        // Decrementa el límite del usuario usando el valor de 'm.limit'
+        user.limit -= m.limit * 1;
+        
+        // Decrementa el dinero del usuario usando el valor de 'm.money'
+        user.money -= m.money * 1;
+    }
 }
 
-let stat
+// Declara una variable para almacenar las estadísticas del plugin
+let stat;
+
+// Verifica si 'm.plugin' está definido
 if (m.plugin) {
-let now = +new Date
-if (m.plugin in stats) {
-stat = stats[m.plugin]
-if (!isNumber(stat.total))
-stat.total = 1
-if (!isNumber(stat.success))
-stat.success = m.error != null ? 0 : 1
-if (!isNumber(stat.last))
-stat.last = now
-if (!isNumber(stat.lastSuccess))
-stat.lastSuccess = m.error != null ? 0 : now
-} else
-stat = stats[m.plugin] = {
-total: 1,
-success: m.error != null ? 0 : 1,
-last: now,
-lastSuccess: m.error != null ? 0 : now
+    // Obtiene la fecha y hora actual en milisegundos
+    let now = +new Date();
+
+    // Verifica si el plugin ya existe en las estadísticas
+    if (m.plugin in stats) {
+        // Obtiene las estadísticas del plugin existente
+        stat = stats[m.plugin];
+
+        // Asegura que 'stat.total' sea un número, inicializa en 1 si no lo es
+        if (!isNumber(stat.total)) {
+            stat.total = 1;
+        }
+
+        // Asegura que 'stat.success' sea un número, inicializa en 0 si hay un error, o 1 si no lo hay
+        if (!isNumber(stat.success)) {
+            stat.success = m.error != null ? 0 : 1;
+        }
+
+        // Asegura que 'stat.last' sea un número, inicializa en la hora actual si no lo es
+        if (!isNumber(stat.last)) {
+            stat.last = now;
+        }
+
+        // Asegura que 'stat.lastSuccess' sea un número, inicializa en 0 si hay un error, o en la hora actual si no lo hay
+        if (!isNumber(stat.lastSuccess)) {
+            stat.lastSuccess = m.error != null ? 0 : now;
+        }
+    } else {
+        // Si el plugin no existe en las estadísticas, lo crea e inicializa con valores predeterminados
+        stat = stats[m.plugin] = {
+            total: 1,
+            success: m.error != null ? 0 : 1,
+            last: now,
+            lastSuccess: m.error != null ? 0 : now
+        };
+    }
+
+    // Incrementa el total de estadísticas
+    stat.total += 1;
+
+    // Actualiza la última hora registrada
+    stat.last = now;
+
+    // Si no hubo un error, incrementa el conteo de éxitos y actualiza la última hora de éxito
+    if (m.error == null) {
+        stat.success += 1;
+        stat.lastSuccess = now;
+    }
 }
-stat.total += 1
-stat.last = now
-if (m.error == null) {
-stat.success += 1
-stat.lastSuccess = now
-}}}
 
 try {
-if (!opts['noprint']) await (await import(`./lib/print.js`)).default(m, this)
+    // Intenta importar e imprimir el mensaje si la opción 'noprint' no está activada
+    if (!opts['noprint']) {
+        await (await import('./lib/print.js')).default(m, this);
+    }
 } catch (e) {
-console.log(m, m.quoted, e)}
-let settingsREAD = global.db.data.settings[this.user.jid] || {}  
-if (opts['autoread']) await this.readMessages([m.key])
-if (settingsREAD.autoread2) await this.readMessages([m.key])  
-//if (settingsREAD.autoread2 == 'true') await this.readMessages([m.key])    
-	    
-if (db.data.chats[m.chat].reaction && m.text.match(/(ción|dad|aje|oso|izar|mente|pero|tion|age|ous|ate|and|but|ify)/gi)) {
-let emot = pickRandom(["😀", "😃", "😄", "😁", "😆", "🥹", "😅", "😂", "🤣", "🥲", "☺️", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🥸", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😶‍🌫️", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🫣", "🤭", "🫢", "🫡", "🤫", "🫠", "🤥", "😶", "🫥", "😐", "🫤", "😑", "🫨", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😮‍💨", "😵", "😵‍💫", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠", "😈", "👿", "👺", "🤡", "💩", "👻", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "🫶", "👍", "✌️", "🙏", "🫵", "🤏", "🤌", "☝️", "🖕", "🙏", "🫵", "🫂", "🐱", "🤹‍♀️", "🤹‍♂️", "🗿", "✨", "⚡", "🔥", "🌈", "🩷", "❤️", "🧡", "💛", "💚", "🩵", "💙", "💜", "🖤", "🩶", "🤍", "🤎", "💔", "❤️‍🔥", "❤️‍🩹", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "🏳️‍🌈", "👊", "👀", "💋", "🫰", "💅", "👑", "🐣", "🐤", "🐈"])
-if (!m.fromMe) return this.sendMessage(m.chat, { react: { text: emot, key: m.key }})
+    // Si ocurre un error durante la importación, imprímelo en la consola
+    console.log(m, m.quoted, e);
 }
-function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]}
-}}
+
+// Obtiene la configuración de ajustes para el usuario actual
+let settingsREAD = global.db.data.settings[this.user.jid] || {};  
+
+// Lee el mensaje si la opción 'autoread' está activada
+if (opts['autoread']) {
+    await this.readMessages([m.key]);
+}
+
+// Lee el mensaje si la configuración 'autoread2' está activada
+if (settingsREAD.autoread2) {
+    await this.readMessages([m.key]);
+}
+
+// La línea comentada abajo es una alternativa para la configuración 'autoread2'
+// if (settingsREAD.autoread2 == 'true') await this.readMessages([m.key]);   
+	    
+// Verifica si la reacción está habilitada para el chat y si el mensaje contiene ciertos patrones
+if (db.data.chats[m.chat].reaction && m.text.match(/(ción|dad|aje|oso|izar|mente|pero|tion|age|ous|ate|and|but|ify)/gi)) {
+
+    // Selecciona un emoji al azar de una lista de emojis relacionados con sentimientos
+    let emot = pickRandom([
+        // Emojis felices y alegres
+        "😀", "😃", "😄", "😁", "😆", "🥹", "😅", "😂", "🤣", "🥲", "☺️", "😊", "😇", "🙂", "🙃", "😉", 
+        "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤩", "🥳", "😏", "😒", 
+
+        // Emojis tristes y preocupados
+        "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", 
+        "🤬", "🤯", "😳", "🥵", "🥶", "😶‍🌫️", "😱", "😨", "😰", "😥", "😓", "😶", "😐", "😑", "😬", "🙄", 
+        "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😮‍💨", "😵", "😵‍💫", "🤐", "🥴", "🤢", 
+        "🤮", "🤧", "😷", "🤒", "🤕", 
+
+        // Emojis sorprendidos y en shock
+        "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤯", "🤬", 
+
+        // Emojis emocionados y confundidos
+        "🤗", "🤔", "🫣", "🤭", "🫢", "🫡", "🤫", "🫠", "🤥", "🫥", "🫤", "🫨", "😬", "🙄", "😯", "😦", 
+        "😧", "😮", "😲", "😵", "🤯", "😲", 
+
+        // Emojis variados
+        "💩", "👻", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "🫶", "👍", "✌️", "🙏", "🫵", 
+        "🤏", "🤌", "☝️", "🖕", "🫵", "🫂", "🐱", "🤹‍♀️", "🤹‍♂️", "🗿", "✨", "⚡", "🔥", "🌈", "🩷", 
+        "❤️", "🧡", "💛", "💚", "🩵", "💙", "💜", "🖤", "🩶", "🤍", "🤎", "💔", "❤️‍🔥", "❤️‍🩹", "❣️", 
+        "💕", "💞", "💓", "💗", "💖", "💘", "💝", "🏳️‍🌈", "👊", "👀", "💋", "🫰", "💅", "👑", "🐣", 
+        "🐤", "🐈"
+    ]);
+
+    // Si el mensaje no proviene del bot, envía una reacción con el emoji seleccionado
+    if (!m.fromMe) {
+        return this.sendMessage(m.chat, { react: { text: emot, key: m.key } });
+    }
+}
+
+// Función para seleccionar un elemento aleatorio de una lista
+function pickRandom(list) {
+    return list[Math.floor(Math.random() * list.length)];
+}
 
 /**
- * Handle groups participants update
+ * Maneja las actualizaciones de los participantes en grupos.
  * @param {import('@adiwajshing/baileys').BaileysEventMap<unknown>['group-participants.update']} groupsUpdate 
  */
 export async function participantsUpdate({ id, participants, action }) {
-if (opts['self'])
-return
-// if (id in conn.chats) return // First login will spam
-if (this.isInit)
-return
-if (global.db.data == null)
-await loadDatabase()
-let chat = global.db.data.chats[id] || {}
-let text = ''
-switch (action) {
-case 'add':
-case 'remove':
-if (chat.welcome) {
-let groupMetadata = await this.groupMetadata(id) || (conn.chats[id] || {}).metadata
-for (let user of participants) {
-let pp = global.gataImg
-try {
-pp = await this.profilePictureUrl(user, 'image')
-} catch (e) {
-} finally {
-let apii = await this.getFile(pp)                                      
-const botTt2 = groupMetadata.participants.find(u => this.decodeJid(u.id) == this.user.jid) || {} 
-const isBotAdminNn = botTt2?.admin === "admin" || false
-text = (action === 'add' ? (chat.sWelcome || this.welcome || conn.welcome || 'Welcome, @user!').replace('@subject', await this.getName(id)).replace('@desc', groupMetadata.desc?.toString() || '😻 𝗦𝘂𝗽𝗲𝗿 𝗚𝗮𝘁𝗮𝗕𝗼𝘁-𝗠𝗗 😻') :
-(chat.sBye || this.bye || conn.bye || 'Bye, @user!')).replace('@user', '@' + user.split('@')[0])
-			    
-if (chat.antifake && isBotAdminNn && action === 'add') {
-const prefijosPredeterminados = [1, 2, 4, 6, 7, 8, 9] // Puedes editar que usuarios deseas que se eliminen si empieza por algunos de los números
-const rutaArchivo = './prefijos.json'
-let prefijos = []
-const existeArchivo = fs.existsSync(rutaArchivo)
-if (existeArchivo) {
-try {
-const contenido = fs.readFileSync(rutaArchivo, 'utf-8')
-prefijos = JSON.parse(contenido)
-} catch (error) {
-console.log('Error "prefijos.json": ', error)
-return
-}} else {
-prefijos = prefijosPredeterminados
+    // Si el bot está configurado para no responder a sí mismo, salimos de la función
+    if (opts['self']) return;
+    
+    // Si el bot ya ha sido inicializado, salimos de la función
+    if (this.isInit) return;
+    
+    // Cargamos la base de datos si es necesario
+    if (global.db.data == null) await loadDatabase();
+    
+    // Obtenemos los datos del chat del grupo
+    let chat = global.db.data.chats[id] || {};
+    
+    // Variable para el texto del mensaje de bienvenida o despedida
+    let text = '';
+    
+    // Evaluamos la acción (añadir o eliminar participantes)
+    switch (action) {
+        case 'add':
+        case 'remove':
+            // Si hay un mensaje de bienvenida configurado, lo utilizamos
+            if (chat.welcome) {
+                // Obtenemos los metadatos del grupo
+                let groupMetadata = await this.groupMetadata(id) || (conn.chats[id] || {}).metadata;
+                
+                // Iteramos sobre los participantes afectados
+                for (let user of participants) {
+                    let pp = global.gataImg;
+                    try {
+                        // Intentamos obtener la foto de perfil del usuario
+                        pp = await this.profilePictureUrl(user, 'image');
+                    } catch (e) {
+                        // Si ocurre un error, utilizamos la imagen predeterminada
+                    } finally {
+                        // Obtenemos el archivo de la foto de perfil
+                        let apii = await this.getFile(pp);
+                        
+                        // Verificamos si el bot es administrador en el grupo
+                        const botTt2 = groupMetadata.participants.find(u => this.decodeJid(u.id) == this.user.jid) || {};
+                        const isBotAdminNn = botTt2?.admin === "admin" || false;
+                        
+                        // Determinamos el mensaje a enviar basado en la acción
+                        text = (action === 'add' 
+                            ? (chat.sWelcome || this.welcome || conn.welcome || '¡Bienvenido, @user!').replace('@subject', await this.getName(id)).replace('@desc', groupMetadata.desc?.toString() || '💻 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 💻') 
+                            : (chat.sBye || this.bye || conn.bye || '¡Adiós, @user!')).replace('@user', '@' + user.split('@')[0]);
+                        
+                        // Aquí se podría enviar el mensaje de bienvenida o despedida
+                    }
+                }
+            }
+            break;
+    }
 }
-const comienzaConPrefijo = prefijos.some(prefijo => user.startsWith(prefijo.toString()))
-if (comienzaConPrefijo) {
-let texto = mid.mAdvertencia + mid.mFake2(user)
-await conn.sendMessage(id, { text: texto, mentions: [user] })
-let responseb = await conn.groupParticipantsUpdate(id, [user], 'remove')
-if (responseb[0].status === "404") return      
-}}
-	
-let fkontak2 = { "key": { "participants":"0@s.whatsapp.net", "remoteJid": "status@broadcast", "fromMe": false, "id": "Halo" }, "message": { "contactMessage": { "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Bot;;;\nFN:y\nitem1.TEL;waid=${user.split('@')[0]}:${user.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD` }}, "participant": "0@s.whatsapp.net" }      
-this.sendMessage(id, { text: text, 
-contextInfo:{
-forwardingScore: 9999999,
-isForwarded: true, 
-mentionedJid:[user],
-"externalAdReply": {
-"showAdAttribution": true,
-"renderLargerThumbnail": true,
-"thumbnail": apii.data, 
-"title": [wm, '😻 𝗦𝘂𝗽𝗲𝗿 ' + gt + ' 😻', '🌟 centergatabot.gmail.com'].getRandom(),
-"containsAutoReply": true,
-"mediaType": 1, 
-sourceUrl: accountsgb ? accountsgb : 'https://github.com/GataNina-Li/GataBot-MD' }}}, { quoted: fkontak2 })
-apii.data = ''
-//this.sendFile(id, apii.data, 'pp.jpg', text, null, false, { mentions: [user] }, { quoted: fkontak2 })
-}}}
 			    
+// Verifica si el sistema de protección antifalsificación está habilitado,
+// si el bot es administrador en el grupo y si la acción es 'add' (añadir usuario)
+if (chat.antifake && isBotAdminNn && action === 'add') {
+    
+    // Define una lista actualizada de prefijos predeterminados que se usan para identificar números sospechosos
+    const prefijosPredeterminados = [
+        7, 20, 27, 30, 31, 32, 33, 39, 40, 44, 46, 47, 48, 49, 61, 62, 63, 64, 65, 66, 
+        81, 82, 84, 86, 91, 92, 94, 98, 212, 213, 216, 218, 221, 222, 225, 233, 234, 
+        237, 249, 254, 255, 256, 351, 380, 675, 676, 679, 685, 880, 961, 962, 964, 
+        965, 966, 967, 968, 971, 972, 973, 974
+    ]; // Puedes editar esta lista según sea necesario
+    const rutaArchivo = './prefijos.json'; // Ruta del archivo JSON que contiene prefijos personalizados
+    
+    let prefijos = []; // Inicializa el array de prefijos
+    
+    // Verifica si el archivo de prefijos existe
+    const existeArchivo = fs.existsSync(rutaArchivo);
+    if (existeArchivo) {
+        try {
+            // Lee el contenido del archivo y lo convierte en un array de prefijos
+            const contenido = fs.readFileSync(rutaArchivo, 'utf-8');
+            prefijos = JSON.parse(contenido);
+        } catch (error) {
+            // Maneja errores en caso de que haya un problema al leer el archivo
+            console.log('Error al leer "prefijos.json": ', error);
+            return; // Sale de la función si ocurre un error
+        }
+    } else {
+        // Si el archivo no existe, usa los prefijos predeterminados
+        prefijos = prefijosPredeterminados;
+    }
+    
+    // Verifica si el número de usuario comienza con alguno de los prefijos
+    const comienzaConPrefijo = prefijos.some(prefijo => user.startsWith(prefijo.toString()));
+    if (comienzaConPrefijo) {
+        // Crea el texto de advertencia y el mensaje que se enviará al grupo
+        let texto = mid.mAdvertencia + mid.mFake2(user);
+        
+        // Envía el mensaje de advertencia al grupo mencionando al usuario
+        await conn.sendMessage(id, { text: texto, mentions: [user] });
+        
+        // Intenta eliminar al usuario del grupo
+        let responseb = await conn.groupParticipantsUpdate(id, [user], 'remove');
+        if (responseb[0].status === "404") {
+            // Si la eliminación falla (por ejemplo, si el usuario no está en el grupo), sale de la función
+            return;
+        }
+    }
+}
+	
+// Crea un objeto de contacto para enviar un mensaje de vCard
+let fkontak2 = {
+    "key": {
+        "participants": "0@s.whatsapp.net",  // Participante que recibe el mensaje
+        "remoteJid": "status@broadcast",     // ID del grupo o del canal de difusión
+        "fromMe": false,                     // Indica si el mensaje es enviado por el bot mismo
+        "id": "Halo"                         // ID del mensaje
+    },
+    "message": {
+        "contactMessage": {
+            "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Bot;;;\nFN:y\nitem1.TEL;waid=${user.split('@')[0]}:${user.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD`
+            // vCard con información de contacto, incluye el número de WhatsApp del usuario
+        }
+    },
+    "participant": "0@s.whatsapp.net"  // Participante que recibe el mensaje
+};
+
+// Envía un mensaje al grupo con el contenido especificado
+this.sendMessage(
+    id,  // ID del grupo o chat al que se envía el mensaje
+    {
+        text: text,  // Texto del mensaje
+        contextInfo: {
+            forwardingScore: 9999999,  // Puntuación de reenvío para indicar que el mensaje es reenviado
+            isForwarded: true,        // Marca el mensaje como reenviado
+            mentionedJid: [user],     // Menciona al usuario en el mensaje
+            "externalAdReply": {
+                "showAdAttribution": true,          // Muestra atribución del anuncio
+                "renderLargerThumbnail": true,      // Renderiza una miniatura más grande
+                "thumbnail": apii.data,              // Imagen miniatura del mensaje
+                "title": [wm, '💻 𝑺𝒖𝒑𝒆𝒓 ' + gt + ' 💻', '🌟 joanbottk.gmail.com'].getRandom(),  // Título del anuncio
+                "containsAutoReply": true,          // Indica que el mensaje contiene una respuesta automática
+                "mediaType": 1,                     // Tipo de medio (1 para imagen)
+                "sourceUrl": accountsgb ? accountsgb : 'https://github.com/JJoan02/Admin-TK'  // URL de la fuente del anuncio
+            }
+        }
+    },
+    {
+        quoted: fkontak2  // Incluye el objeto de contacto como cita en el mensaje
+    }
+);
+
+// Limpia los datos de la imagen para evitar el uso de memoria innecesario
+apii.data = '';
+
+// La siguiente línea está comentada, pero se puede usar para enviar un archivo
+// this.sendFile(id, apii.data, 'pp.jpg', text, null, false, { mentions: [user] }, { quoted: fkontak2 })
+			    
+// Maneja la actualización de roles en el grupo (promoción y democión de usuarios)
 break
-case 'promote':
-case 'daradmin':
-case 'darpoder':
-text = (chat.sPromote || this.spromote || conn.spromote || '@user ```is now Admin```')
-case 'demote':
-case 'quitarpoder':
-case 'quitaradmin':
-if (!text)
-text = (chat.sDemote || this.sdemote || conn.sdemote || '@user ```is no longer Admin```')
-text = text.replace('@user', '@' + participants[0].split('@')[0])
-if (chat.detect)
-//this.sendMessage(id, { text, mentions: this.parseMention(text) })
-break
-}}
+case 'promote':       // Caso para promover un usuario a administrador
+case 'daradmin':      // Alias para el comando de promoción
+case 'darpoder':      // Otro alias para el comando de promoción
+    // Establece el texto de confirmación para la promoción
+    text = (chat.sPromote || this.spromote || conn.spromote || '@user ```is now Admin```');
+    break  // Salta al final del switch-case
+
+case 'demote':        // Caso para despromover un usuario de administrador
+case 'quitarpoder':   // Alias para el comando de despromoción
+case 'quitaradmin':   // Otro alias para el comando de despromoción
+    // Si no se ha definido un texto de confirmación, utiliza el texto predeterminado
+    if (!text)
+        text = (chat.sDemote || this.sdemote || conn.sdemote || '@user ```is no longer Admin```');
+    // Reemplaza el marcador @user con el nombre de usuario del primer participante
+    text = text.replace('@user', '@' + participants[0].split('@')[0]);
+    // Si la detección está habilitada, envía el mensaje
+    if (chat.detect)
+        // this.sendMessage(id, { text, mentions: this.parseMention(text) });
+        // La línea anterior está comentada pero sería utilizada para enviar un mensaje al grupo
+    break  // Salta al final del switch-case
+    }
+}
+// Fin del código para manejo de roles
+
 
 /**
  * Handle groups update
