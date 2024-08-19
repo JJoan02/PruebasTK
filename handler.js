@@ -1760,180 +1760,75 @@ if (m.plugin) {
 }
 
 try {
-    // Intenta importar e imprimir el mensaje si la opción 'noprint' no está activada
-    if (!opts['noprint']) {
-        await (await import('./lib/print.js')).default(m, this);
-    }
+if (!opts['noprint']) await (await import(`./lib/print.js`)).default(m, this)
 } catch (e) {
-    // Si ocurre un error durante la importación, imprímelo en la consola
-    console.log(m, m.quoted, e);
-}
-
-// Obtiene la configuración de ajustes para el usuario actual
-let settingsREAD = global.db.data.settings[this.user.jid] || {};  
-
-// Lee el mensaje si la opción 'autoread' está activada
-if (opts['autoread']) {
-    await this.readMessages([m.key]);
-}
-
-// Lee el mensaje si la configuración 'autoread2' está activada
-if (settingsREAD.autoread2) {
-    await this.readMessages([m.key]);
-}
-
-// La línea comentada abajo es una alternativa para la configuración 'autoread2'
-// if (settingsREAD.autoread2 == 'true') await this.readMessages([m.key]);   
+console.log(m, m.quoted, e)}
+let settingsREAD = global.db.data.settings[this.user.jid] || {}  
+if (opts['autoread']) await this.readMessages([m.key])
+if (settingsREAD.autoread2) await this.readMessages([m.key])  
+//if (settingsREAD.autoread2 == 'true') await this.readMessages([m.key])    
 	    
-// Verifica si la reacción está habilitada para el chat y si el mensaje contiene ciertos patrones
 if (db.data.chats[m.chat].reaction && m.text.match(/(ción|dad|aje|oso|izar|mente|pero|tion|age|ous|ate|and|but|ify)/gi)) {
-
-    // Selecciona un emoji al azar de una lista de emojis relacionados con sentimientos
-    let emot = pickRandom([
-        // Emojis felices y alegres
-        "😀", "😃", "😄", "😁", "😆", "🥹", "😅", "😂", "🤣", "🥲", "☺️", "😊", "😇", "🙂", "🙃", "😉", 
-        "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤩", "🥳", "😏", "😒", 
-
-        // Emojis tristes y preocupados
-        "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", 
-        "🤬", "🤯", "😳", "🥵", "🥶", "😶‍🌫️", "😱", "😨", "😰", "😥", "😓", "😶", "😐", "😑", "😬", "🙄", 
-        "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😮‍💨", "😵", "😵‍💫", "🤐", "🥴", "🤢", 
-        "🤮", "🤧", "😷", "🤒", "🤕", 
-
-        // Emojis sorprendidos y en shock
-        "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤯", "🤬", 
-
-        // Emojis emocionados y confundidos
-        "🤗", "🤔", "🫣", "🤭", "🫢", "🫡", "🤫", "🫠", "🤥", "🫥", "🫤", "🫨", "😬", "🙄", "😯", "😦", 
-        "😧", "😮", "😲", "😵", "🤯", "😲", 
-
-        // Emojis variados
-        "💩", "👻", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "🫶", "👍", "✌️", "🙏", "🫵", 
-        "🤏", "🤌", "☝️", "🖕", "🫵", "🫂", "🐱", "🤹‍♀️", "🤹‍♂️", "🗿", "✨", "⚡", "🔥", "🌈", "🩷", 
-        "❤️", "🧡", "💛", "💚", "🩵", "💙", "💜", "🖤", "🩶", "🤍", "🤎", "💔", "❤️‍🔥", "❤️‍🩹", "❣️", 
-        "💕", "💞", "💓", "💗", "💖", "💘", "💝", "🏳️‍🌈", "👊", "👀", "💋", "🫰", "💅", "👑", "🐣", 
-        "🐤", "🐈"
-    ]);
-
-    // Si el mensaje no proviene del bot, envía una reacción con el emoji seleccionado
-    if (!m.fromMe) {
-        return this.sendMessage(m.chat, { react: { text: emot, key: m.key } });
-    }
+let emot = pickRandom(["😀", "😃", "😄", "😁", "😆", "🥹", "😅", "😂", "🤣", "🥲", "☺️", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🥸", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😶‍🌫️", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🫣", "🤭", "🫢", "🫡", "🤫", "🫠", "🤥", "😶", "🫥", "😐", "🫤", "😑", "🫨", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😮‍💨", "😵", "😵‍💫", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠", "😈", "👿", "👺", "🤡", "💩", "👻", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "🫶", "👍", "✌️", "🙏", "🫵", "🤏", "🤌", "☝️", "🖕", "🙏", "🫵", "🫂", "🐱", "🤹‍♀️", "🤹‍♂️", "🗿", "✨", "⚡", "🔥", "🌈", "🩷", "❤️", "🧡", "💛", "💚", "🩵", "💙", "💜", "🖤", "🩶", "🤍", "🤎", "💔", "❤️‍🔥", "❤️‍🩹", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "🏳️‍🌈", "👊", "👀", "💋", "🫰", "💅", "👑", "🐣", "🐤", "🐈"])
+if (!m.fromMe) return this.sendMessage(m.chat, { react: { text: emot, key: m.key }})
 }
-
-// Función para seleccionar un elemento aleatorio de una lista
-function pickRandom(list) {
-    return list[Math.floor(Math.random() * list.length)];
-}
+function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]}
+}}
 
 /**
- * Maneja las actualizaciones de los participantes en grupos.
+ * Handle groups participants update
  * @param {import('@adiwajshing/baileys').BaileysEventMap<unknown>['group-participants.update']} groupsUpdate 
  */
 export async function participantsUpdate({ id, participants, action }) {
-    // Si el bot está configurado para no responder a sí mismo, salimos de la función
-    if (opts['self']) return;
-    
-    // Si el bot ya ha sido inicializado, salimos de la función
-    if (this.isInit) return;
-    
-    // Cargamos la base de datos si es necesario
-    if (global.db.data == null) await loadDatabase();
-    
-    // Obtenemos los datos del chat del grupo
-    let chat = global.db.data.chats[id] || {};
-    
-    // Variable para el texto del mensaje de bienvenida o despedida
-    let text = '';
-    
-    // Evaluamos la acción (añadir o eliminar participantes)
-    switch (action) {
-        case 'add':
-        case 'remove':
-            // Si hay un mensaje de bienvenida configurado, lo utilizamos
-            if (chat.welcome) {
-                // Obtenemos los metadatos del grupo
-                let groupMetadata = await this.groupMetadata(id) || (conn.chats[id] || {}).metadata;
-                
-                // Iteramos sobre los participantes afectados
-                for (let user of participants) {
-                    let pp = global.gataImg;
-                    try {
-                        // Intentamos obtener la foto de perfil del usuario
-                        pp = await this.profilePictureUrl(user, 'image');
-                    } catch (e) {
-                        // Si ocurre un error, utilizamos la imagen predeterminada
-                    } finally {
-                        // Obtenemos el archivo de la foto de perfil
-                        let apii = await this.getFile(pp);
-                        
-                        // Verificamos si el bot es administrador en el grupo
-                        const botTt2 = groupMetadata.participants.find(u => this.decodeJid(u.id) == this.user.jid) || {};
-                        const isBotAdminNn = botTt2?.admin === "admin" || false;
-                        
-                        // Determinamos el mensaje a enviar basado en la acción
-                        text = (action === 'add' 
-                            ? (chat.sWelcome || this.welcome || conn.welcome || '¡Bienvenido, @user!').replace('@subject', await this.getName(id)).replace('@desc', groupMetadata.desc?.toString() || '💻 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 💻') 
-                            : (chat.sBye || this.bye || conn.bye || '¡Adiós, @user!')).replace('@user', '@' + user.split('@')[0]);
-                        
-                        // Aquí se podría enviar el mensaje de bienvenida o despedida
-                    }
-                }
-            }
-            break;
-    }
-}
+if (opts['self'])
+return
+// if (id in conn.chats) return // First login will spam
+if (this.isInit)
+return
+if (global.db.data == null)
+await loadDatabase()
+let chat = global.db.data.chats[id] || {}
+let text = ''
+switch (action) {
+case 'add':
+case 'remove':
+if (chat.welcome) {
+let groupMetadata = await this.groupMetadata(id) || (conn.chats[id] || {}).metadata
+for (let user of participants) {
+let pp = global.gataImg
+try {
+pp = await this.profilePictureUrl(user, 'image')
+} catch (e) {
+} finally {
+let apii = await this.getFile(pp)                                      
+const botTt2 = groupMetadata.participants.find(u => this.decodeJid(u.id) == this.user.jid) || {} 
+const isBotAdminNn = botTt2?.admin === "admin" || false
+text = (action === 'add' ? (chat.sWelcome || this.welcome || conn.welcome || 'Welcome, @user!').replace('@subject', await this.getName(id)).replace('@desc', groupMetadata.desc?.toString() || '😻 𝗦𝘂𝗽𝗲𝗿 𝗚𝗮𝘁𝗮𝗕𝗼𝘁-𝗠𝗗 😻') :
+(chat.sBye || this.bye || conn.bye || 'Bye, @user!')).replace('@user', '@' + user.split('@')[0])
 			    
-// Verifica si el sistema de protección antifalsificación está habilitado,
-// si el bot es administrador en el grupo y si la acción es 'add' (añadir usuario)
 if (chat.antifake && isBotAdminNn && action === 'add') {
-    
-    // Define una lista actualizada de prefijos predeterminados que se usan para identificar números sospechosos
-    const prefijosPredeterminados = [
-        7, 20, 27, 30, 31, 32, 33, 39, 40, 44, 46, 47, 48, 49, 61, 62, 63, 64, 65, 66, 
-        81, 82, 84, 86, 91, 92, 94, 98, 212, 213, 216, 218, 221, 222, 225, 233, 234, 
-        237, 249, 254, 255, 256, 351, 380, 675, 676, 679, 685, 880, 961, 962, 964, 
-        965, 966, 967, 968, 971, 972, 973, 974
-    ]; // Puedes editar esta lista según sea necesario
-    const rutaArchivo = './prefijos.json'; // Ruta del archivo JSON que contiene prefijos personalizados
-    
-    let prefijos = []; // Inicializa el array de prefijos
-    
-    // Verifica si el archivo de prefijos existe
-    const existeArchivo = fs.existsSync(rutaArchivo);
-    if (existeArchivo) {
-        try {
-            // Lee el contenido del archivo y lo convierte en un array de prefijos
-            const contenido = fs.readFileSync(rutaArchivo, 'utf-8');
-            prefijos = JSON.parse(contenido);
-        } catch (error) {
-            // Maneja errores en caso de que haya un problema al leer el archivo
-            console.log('Error al leer "prefijos.json": ', error);
-            return; // Sale de la función si ocurre un error
-        }
-    } else {
-        // Si el archivo no existe, usa los prefijos predeterminados
-        prefijos = prefijosPredeterminados;
-    }
-    
-    // Verifica si el número de usuario comienza con alguno de los prefijos
-    const comienzaConPrefijo = prefijos.some(prefijo => user.startsWith(prefijo.toString()));
-    if (comienzaConPrefijo) {
-        // Crea el texto de advertencia y el mensaje que se enviará al grupo
-        let texto = mid.mAdvertencia + mid.mFake2(user);
-        
-        // Envía el mensaje de advertencia al grupo mencionando al usuario
-        await conn.sendMessage(id, { text: texto, mentions: [user] });
-        
-        // Intenta eliminar al usuario del grupo
-        let responseb = await conn.groupParticipantsUpdate(id, [user], 'remove');
-        if (responseb[0].status === "404") {
-            // Si la eliminación falla (por ejemplo, si el usuario no está en el grupo), sale de la función
-            return;
-        }
-    }
+const prefijosPredeterminados = [7, 20, 27, 30, 31, 32, 33, 39, 40, 44, 46, 47, 48, 49, 61, 62, 63, 64, 65, 66, 81, 82, 84, 86, 91, 92, 94, 98, 212, 213, 216, 218, 221, 222, 225, 233, 234, 237, 249, 254, 255, 256, 351, 380, 675, 676, 679, 685, 880, 961, 962, 964, 965, 966, 967, 968, 971, 972, 973, 974] // Puedes editar que usuarios deseas que se eliminen si empieza por algunos de los números
+const rutaArchivo = './prefijos.json'
+let prefijos = []
+const existeArchivo = fs.existsSync(rutaArchivo)
+if (existeArchivo) {
+try {
+const contenido = fs.readFileSync(rutaArchivo, 'utf-8')
+prefijos = JSON.parse(contenido)
+} catch (error) {
+console.log('Error "prefijos.json": ', error)
+return
+}} else {
+prefijos = prefijosPredeterminados
 }
-	
+const comienzaConPrefijo = prefijos.some(prefijo => user.startsWith(prefijo.toString()))
+if (comienzaConPrefijo) {
+let texto = mid.mAdvertencia + mid.mFake2(user)
+await conn.sendMessage(id, { text: texto, mentions: [user] })
+let responseb = await conn.groupParticipantsUpdate(id, [user], 'remove')
+if (responseb[0].status === "404") return      
+}}
+
 let fkontak2 = { "key": { "participants":"0@s.whatsapp.net", "remoteJid": "status@broadcast", "fromMe": false, "id": "Halo" }, "message": { "contactMessage": { "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Bot;;;\nFN:y\nitem1.TEL;waid=${user.split('@')[0]}:${user.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD` }}, "participant": "0@s.whatsapp.net" }      
 this.sendMessage(id, { text: text, 
 contextInfo:{
