@@ -1074,385 +1074,190 @@ jadibotmd: true,
 console.error(e)
 }
 
-// Verifica si el remitente del mensaje es el propietario del bot
-const isROwner = [conn.decodeJid(global.conn.user.id), ...global.owner.map(([number]) => number)]
-    .map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net')
-    .includes(m.sender);
-
-// Verifica si el remitente es el propietario real o si el mensaje proviene del propio bot
-const isOwner = isROwner || m.fromMe;
-
-// Verifica si el remitente es un moderador (mods) o el propietario
-const isMods = isOwner || global.mods
-    .map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net')
-    .includes(m.sender);
-
-// Verifica si el remitente es un usuario premium o el propietario
-// Nota: El código comentado anteriormente verificaba la lista de prems (usuarios premium) de forma diferente
-//const isPrems = isROwner || global.prems.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender);
-
-// Nueva verificación de usuarios premium usando el tiempo premium almacenado en la base de datos
-const isPrems = isROwner || global.db.data.users[m.sender].premiumTime > 0;
-
-// Si la opción 'queque' está habilitada y el mensaje tiene texto, pero el remitente no es ni moderador ni premium
+const isROwner = [conn.decodeJid(global.conn.user.id), ...global.owner.map(([number]) => number)].map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
+const isOwner = isROwner || m.fromMe
+const isMods = isOwner || global.mods.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
+//const isPrems = isROwner || global.prems.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
+const isPrems = isROwner || global.db.data.users[m.sender].premiumTime > 0
 if (opts['queque'] && m.text && !(isMods || isPrems)) {
-    
-    // Obtiene la cola de mensajes y establece un tiempo de espera de 5 segundos
-    let queque = this.msgqueque, time = 1000 * 5;
-    
-    // Obtiene el ID del mensaje previo en la cola
-    const previousID = queque[queque.length - 1];
-    
-    // Añade el ID del mensaje actual a la cola
-    queque.push(m.id || m.key.id);
-    
-    // Inicia un intervalo para revisar la cola cada 5 segundos
-    setInterval(async function () {
-        // Si el mensaje previo ha sido procesado, se detiene el intervalo
-        if (queque.indexOf(previousID) === -1) clearInterval(this);
-        
-        // Introduce un retraso en la ejecución
-        await delay(time);
-    }, time);
+let queque = this.msgqueque, time = 1000 * 5
+const previousID = queque[queque.length - 1]
+queque.push(m.id || m.key.id)
+setInterval(async function () {
+if (queque.indexOf(previousID) === -1) clearInterval(this)
+await delay(time)
+}, time)
 }
 
-// Si la opción 'nyimak' está activada en 'opts', se detiene la ejecución del código.
 if (opts['nyimak']) return
-
-// Si el usuario no es el propietario del bot y la opción 'self' está activada, se detiene la ejecución del código.
 if (!isROwner && opts['self']) return 
-
-// Si la opción 'pconly' está activada y el chat es un grupo (termina con 'g.us'), se detiene la ejecución del código.
 if (opts['pconly'] && m.chat.endsWith('g.us')) return
-
-// Si la opción 'gconly' está activada y el chat no es un grupo (no termina con 'g.us'), se detiene la ejecución del código.
 if (opts['gconly'] && !m.chat.endsWith('g.us')) return
-
-// Si la opción 'swonly' está activada y el chat no es una transmisión de estado, se detiene la ejecución del código.
 if (opts['swonly'] && m.chat !== 'status@broadcast') return
-
-// Si el texto del mensaje no es una cadena de caracteres, se inicializa como una cadena vacía.
 if (typeof m.text !== 'string')
 m.text = ''
 
-// Si el mensaje es de Baileys, detiene la ejecución del código.
-// Esto puede ser útil para evitar procesar mensajes que provienen de bots o mensajes internos del sistema.
 if (m.isBaileys) return
-
-// Incrementa el valor de 'm.exp' con un número aleatorio entre 1 y 10.
-// Esto podría usarse para dar una pequeña cantidad de experiencia a los usuarios en función de alguna acción.
 m.exp += Math.ceil(Math.random() * 10)
-
-// Declara una variable 'usedPrefix' sin inicializar.
-// Esta variable puede ser utilizada más adelante en el código para almacenar algún prefijo de comando o similar.
 let usedPrefix
-
-// Obtiene el objeto de datos del usuario desde la base de datos global, si existe.
-// La variable '_user' contendrá los datos del usuario que envió el mensaje, o 'undefined' si no hay datos disponibles.
-// 'm.sender' representa el identificador del usuario que envió el mensaje.
 let _user = global.db.data && global.db.data.users && global.db.data.users[m.sender]
 
-// Obtiene los metadatos del grupo si el mensaje es de un grupo.
-// Primero verifica si los metadatos están disponibles en 'conn.chats'.
-// Si no están disponibles, intenta obtenerlos mediante 'this.groupMetadata(m.chat)' y captura cualquier error.
 const groupMetadata = (m.isGroup ? ((conn.chats[m.chat] || {}).metadata || await this.groupMetadata(m.chat).catch(_ => null)) : {}) || {}
-
-// Obtiene la lista de participantes del grupo si el mensaje es de un grupo.
-// Si no es un grupo, se establece como una lista vacía.
 const participants = (m.isGroup ? groupMetadata.participants : []) || []
-
-// Encuentra el objeto del usuario que envió el mensaje en la lista de participantes del grupo, si el mensaje es de un grupo.
-// 'conn.decodeJid(u.id)' decodifica el ID del usuario y lo compara con el ID del remitente del mensaje.
-// Si no es un grupo, se establece como un objeto vacío.
-const user = (m.isGroup ? participants.find(u => conn.decodeJid(u.id) === m.sender) : {}) || {} // Datos del Usuario
-
-// Encuentra el objeto del bot en la lista de participantes del grupo, si el mensaje es de un grupo.
-// 'conn.decodeJid(u.id)' decodifica el ID del usuario y lo compara con el ID del bot.
-// Si no es un grupo, se establece como un objeto vacío.
+const user = (m.isGroup ? participants.find(u => conn.decodeJid(u.id) === m.sender) : {}) || {} // User Data
 const bot = (m.isGroup ? participants.find(u => conn.decodeJid(u.id) == this.user.jid) : {}) || {}
-
-// Determina si el usuario que envió el mensaje es un superadministrador.
-// Verifica si 'user.admin' es igual a 'superadmin', y si no, se establece como 'false'.
 const isRAdmin = user?.admin == 'superadmin' || false
+const isAdmin = isRAdmin || user?.admin == 'admin' || false //user admins? 
+const isBotAdmin = bot?.admin || false //Detecta sin el bot es admin
 
-// Determina si el usuario que envió el mensaje es un administrador.
-// Verifica si el usuario es un superadministrador o si 'user.admin' es igual a 'admin'.
-// Si ninguna de las condiciones es verdadera, se establece como 'false'.
-const isAdmin = isRAdmin || user?.admin == 'admin' || false // ¿El usuario es administrador?
-
-// Determina si el bot es un administrador en el grupo.
-// Verifica si 'bot.admin' existe y si es verdadero. Si no, se establece como 'false'.
-const isBotAdmin = bot?.admin || false // Detecta si el bot es administrador
-
-// Obtiene la ruta del directorio 'plugins' a partir del archivo actual.
-// 'fileURLToPath(import.meta.url)' convierte la URL del módulo en una ruta de archivo.
-// 'path.dirname' obtiene el directorio del archivo actual.
-// 'path.join' une el directorio con el subdirectorio 'plugins'.
 const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins')
-
-// Itera sobre todos los plugins en 'global.plugins'.
 for (let name in global.plugins) {
-    let plugin = global.plugins[name]
-    
-    // Si el plugin no existe, continúa con el siguiente en la lista.
-    if (!plugin)
-        continue
-    
-    // Si el plugin está deshabilitado, continúa con el siguiente en la lista.
-    if (plugin.disabled)
-        continue
-    
-    // Obtiene la ruta completa del archivo del plugin.
-    const __filename = join(___dirname, name)
-    
-    // Si el plugin tiene una función 'all', intenta ejecutarla.
-    if (typeof plugin.all === 'function') {
-        try {
-            // Llama a la función 'all' del plugin con el contexto adecuado y los parámetros necesarios.
-            await plugin.all.call(this, m, {
-                chatUpdate,
-                __dirname: ___dirname,
-                __filename
-            })
-        } catch (e) {
-            // Captura y muestra cualquier error que ocurra durante la ejecución de la función 'all'.
-            console.error(e)
-            
-            // Notifica a los propietarios del bot si ocurre un error.
-            for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
-                let data = (await conn.onWhatsApp(jid))[0] || {}
-                
-                // Si el número de WhatsApp existe, envía un mensaje con detalles del error.
-                if (data.exists)
-                    m.reply(`${lenguajeGB['smsCont1']()}\n\n${lenguajeGB['smsCont2']()}\n*_${name}_*\n\n${lenguajeGB['smsCont3']()}\n*_${m.sender}_*\n\n${lenguajeGB['smsCont4']()}\n*_${m.text}_*\n\n${lenguajeGB['smsCont5']()}\n\`\`\`${format(e)}\`\`\`\n\n${lenguajeGB['smsCont6']()}`.trim(), data.jid)
-            }
-        }
-    }
-    
-    // Si la opción 'restrict' no está activada y el plugin tiene la etiqueta 'admin', continúa con el siguiente plugin.
-    if (!opts['restrict'])
-        if (plugin.tags && plugin.tags.includes('admin')) {
-            // Se omite la llamada a 'global.dfail' que podría usarse para manejar restricciones.
-            // global.dfail('restrict', m, this)
-            continue
-        }
+let plugin = global.plugins[name]
+if (!plugin)
+continue
+if (plugin.disabled)
+continue
+const __filename = join(___dirname, name)
+if (typeof plugin.all === 'function') {
+try {
+await plugin.all.call(this, m, {
+chatUpdate,
+__dirname: ___dirname,
+__filename
+})
+} catch (e) {
+// if (typeof e === 'string') continue
+console.error(e)
+for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
+let data = (await conn.onWhatsApp(jid))[0] || {}
+if (data.exists)
+m.reply(`${lenguajeGB['smsCont1']()}\n\n${lenguajeGB['smsCont2']()}\n*_${name}_*\n\n${lenguajeGB['smsCont3']()}\n*_${m.sender}_*\n\n${lenguajeGB['smsCont4']()}\n*_${m.text}_*\n\n${lenguajeGB['smsCont5']()}\n\`\`\`${format(e)}\`\`\`\n\n${lenguajeGB['smsCont6']()}`.trim(), data.jid)
+}}}
+if (!opts['restrict'])
+if (plugin.tags && plugin.tags.includes('admin')) {
+// global.dfail('restrict', m, this)
+continue
 }
-// Función para escapar caracteres especiales en una cadena para usar en una expresión regular.
-// Esto asegura que caracteres como |, \, {, }, (, ), [, ], ^, $, +, *, ?, . sean tratados como literales.
 const str2Regex = str => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
-
-// Determina el prefijo a usar para el plugin.
-// Si el plugin tiene un prefijo personalizado, se usa ese prefijo.
-// Si no, se usa el prefijo del objeto 'conn' (que puede ser el prefijo del bot configurado).
-// Si ninguno de los anteriores está definido, se usa el prefijo global.
 let _prefix = plugin.customPrefix ? plugin.customPrefix : conn.prefix ? conn.prefix : global.prefix
-
-// Determina si el prefijo es una expresión regular, un array, o una cadena y realiza una búsqueda en el texto del mensaje (m.text).
-// Si es una expresión regular, se ejecuta directamente.
-// Si es un array, se ejecuta cada expresión regular o cadena convertida a expresión regular.
-// Si es una cadena, se convierte a expresión regular.
-let match = (_prefix instanceof RegExp ? // Modo Expresión Regular?
-    [[_prefix.exec(m.text), _prefix]] :
-    Array.isArray(_prefix) ? // ¿Es un Array?
-        _prefix.map(p => {
-            let re = p instanceof RegExp ? // ¿Es una Expresión Regular en el Array?
-                p :
-                new RegExp(str2Regex(p)) // Convierte la cadena a expresión regular.
-            return [re.exec(m.text), re]
-        }) :
-        typeof _prefix === 'string' ? // ¿Es una Cadena?
-            [[new RegExp(str2Regex(_prefix)).exec(m.text), new RegExp(str2Regex(_prefix))]] :
-            [[[], new RegExp]]
-).find(p => p[1]) // Encuentra la primera coincidencia que tenga una expresión regular válida.
-
-// Si el plugin tiene una función 'before', la ejecuta antes de procesar el comando.
-// 'plugin.before' debe ser una función que se llama con el contexto adecuado y parámetros relevantes.
+let match = (_prefix instanceof RegExp ? // RegExp Mode?
+[[_prefix.exec(m.text), _prefix]] :
+Array.isArray(_prefix) ? // Array?
+_prefix.map(p => {
+let re = p instanceof RegExp ? // RegExp in Array?
+p :
+new RegExp(str2Regex(p))
+return [re.exec(m.text), re]
+}) :
+typeof _prefix === 'string' ? // String?
+[[new RegExp(str2Regex(_prefix)).exec(m.text), new RegExp(str2Regex(_prefix))]] :
+[[[], new RegExp]]
+).find(p => p[1])
 if (typeof plugin.before === 'function') {
-    if (await plugin.before.call(this, m, {
-        match,                  // Coincidencias encontradas.
-        conn: this,             // Objeto de conexión del bot.
-        participants,           // Participantes del grupo.
-        groupMetadata,          // Metadatos del grupo.
-        user,                   // Datos del usuario que envió el mensaje.
-        bot,                    // Datos del bot en el grupo.
-        isROwner,               // Verifica si el usuario es el propietario real.
-        isOwner,                // Verifica si el usuario es el propietario del bot.
-        isRAdmin,               // Verifica si el usuario es un superadministrador.
-        isAdmin,                // Verifica si el usuario es administrador.
-        isBotAdmin,             // Verifica si el bot es administrador.
-        isPrems,                // Verifica si el usuario tiene permisos especiales.
-        chatUpdate,             // Información de actualización del chat.
-        __dirname: ___dirname,  // Directorio del plugin.
-        __filename              // Archivo del plugin.
-    }))
-        continue
+if (await plugin.before.call(this, m, {
+match,
+conn: this,
+participants,
+groupMetadata,
+user,
+bot,
+isROwner,
+isOwner,
+isRAdmin,
+isAdmin,
+isBotAdmin,
+isPrems,
+chatUpdate,
+__dirname: ___dirname,
+__filename
+}))
+continue
 }
-// Verifica si 'plugin' no es una función y continúa con la siguiente iteración del bucle si es así.
-// Esto asegura que solo se procesen los elementos en 'global.plugins' que son funciones.
 if (typeof plugin !== 'function')
-    continue
-
-// Asigna el primer carácter del prefijo utilizado (si existe) a 'usedPrefix'.
+continue
 if ((usedPrefix = (match[0] || '')[0])) {
-    // Elimina el prefijo del texto del mensaje para obtener el comando y los argumentos.
-    let noPrefix = m.text.replace(usedPrefix, '')
-    
-    // Divide el texto sin prefijo en partes, asigna el primer elemento a 'command' y el resto a 'args'.
-    // 'filter(v => v)' elimina elementos vacíos.
-    let [command, ...args] = noPrefix.trim().split` `.filter(v => v)
-    
-    // Asegura que 'args' no sea null o undefined.
-    args = args || []
-    
-    // Obtiene los argumentos del comando y los une en una cadena 'text'.
-    let _args = noPrefix.trim().split` `.slice(1)
-    let text = _args.join` `
-    
-    // Convierte el comando a minúsculas para asegurar la comparación sin distinción entre mayúsculas y minúsculas.
-    command = (command || '').toLowerCase()
-    
-    // Obtiene la función de manejo de fallos del plugin o usa la función global 'dfail' si no está definida.
-    let fail = plugin.fail || global.dfail // En caso de fallo
-    
-    // Determina si el comando es aceptable según el tipo de 'plugin.command'.
-    // Verifica si 'plugin.command' es una expresión regular, un array de expresiones regulares o cadenas, o una cadena simple.
-    let isAccept = plugin.command instanceof RegExp ? // ¿Modo Expresión Regular?
-        plugin.command.test(command) :
-        Array.isArray(plugin.command) ? // ¿Es un Array?
-            plugin.command.some(cmd => cmd instanceof RegExp ? // ¿Expresión Regular en el Array?
-                cmd.test(command) :
-                cmd === command
-            ) :
-            typeof plugin.command === 'string' ? // ¿Es una Cadena?
-                plugin.command === command :
-                false
-}
+let noPrefix = m.text.replace(usedPrefix, '')
+let [command, ...args] = noPrefix.trim().split` `.filter(v => v)
+args = args || []
+let _args = noPrefix.trim().split` `.slice(1)
+let text = _args.join` `
+command = (command || '').toLowerCase()
+let fail = plugin.fail || global.dfail // When failed
+let isAccept = plugin.command instanceof RegExp ? // RegExp Mode?
+plugin.command.test(command) :
+Array.isArray(plugin.command) ? // Array?
+plugin.command.some(cmd => cmd instanceof RegExp ? // RegExp in Array?
+cmd.test(command) :
+cmd === command
+) :
+typeof plugin.command === 'string' ? // String?
+plugin.command === command :
+false
 
-// Si el comando no es aceptado, continúa con la siguiente iteración del bucle.
-// Esto evita que se procese el mensaje si el comando no cumple con los criterios de aceptación.
 if (!isAccept)
-    continue
-
-// Asigna el nombre del plugin que se está procesando a la propiedad 'm.plugin'.
+continue
 m.plugin = name
-
-// Verifica si el chat o el remitente están en la base de datos.
 if (m.chat in global.db.data.chats || m.sender in global.db.data.users) {
-    // Obtiene la información del chat y del usuario desde la base de datos.
-    let chat = global.db.data.chats[m.chat]
-    let user = global.db.data.users[m.sender]
-
-    // Si el plugin no es uno de los excluidos y el chat está baneado y el usuario no es el propietario,
-    // entonces no se permite el uso del plugin para ese chat.
-    if (!['owner-unbanchat.js'].includes(name) && chat && chat.isBanned && !isROwner) return // Excepto esto
-
-    // Si el nombre del plugin no está en la lista de excepciones y el chat está baneado y el usuario no es el propietario,
-    // entonces no se permite el uso del plugin para ese chat.
-    if (name != 'owner-unbanchat.js' && name != 'owner-exec.js' && name != 'owner-exec2.js' && name != 'tool-delete.js' && chat?.isBanned && !isROwner) return 
-    
-    // Si el mensaje tiene texto y el usuario está baneado y no es el propietario,
-    // realiza las siguientes acciones.
-    if (m.text && user.banned && !isROwner) {
-        // Si el contador de antispam del usuario es mayor que 2, no se permite el uso del comando.
-        if (user.antispam > 2) return
-        
-        // Envía un mensaje al usuario indicando que está baneado y no puede usar los comandos.
-        // Proporciona el motivo del baneo y un enlace para exponer su caso si cree que es un error.
-        m.reply(`🚫 *¡OH NO! ESTÁS EN EL BANLISTA* 🚫\n\n😂 *PARECE QUE TE HAN BANEADO* 😂\n*¿MOTIVO?* 🤔 *${user.messageSpam === 0 ? 'NO ESPECIFICADO, PERO SEGURAMENTE HICISTE ALGO DIVERTIDO' : user.messageSpam}*\n\n🤯 *¡CUANDO TE BANEARON, EL BOT TAMBIÉN SE RÍÓ!* 🤯\n\n👉 *SI CREES QUE ESTO ES UN ERROR* 👉\n👉 *¿Tienes pruebas? Puedes exponer tu caso en:* 👉\n*${ig}*\n*Y si eso no funciona, siempre está ${asistencia} para escuchar tus quejas* 🤷‍♂️\n\n🛑 *No intentes evadir el baneo o tendrás que enfrentar al * *BOT RÍE* 🤣*`)
-        
-        // Incrementa el contador de antispam del usuario.
-        user.antispam++    
-        
-        // Termina la ejecución del código para el usuario baneado.
-        return
-    }
+let chat = global.db.data.chats[m.chat]
+let user = global.db.data.users[m.sender]
+if (!['owner-unbanchat.js'].includes(name) && chat && chat.isBanned && !isROwner) return // Except this
+if (name != 'owner-unbanchat.js' && name != 'owner-exec.js' && name != 'owner-exec2.js' && name != 'tool-delete.js' && chat?.isBanned && !isROwner) return 
+if (m.text && user.banned && !isROwner) {
+if (user.antispam > 2) return
+m.reply(`🚫 *¡OH NO! ESTÁS EN EL BANLISTA* 🚫\n\n😂 *PARECE QUE TE HAN BANEADO* 😂\n*¿MOTIVO?* 🤔 *${user.messageSpam === 0 ? 'NO ESPECIFICADO, PERO SEGURAMENTE HICISTE ALGO DIVERTIDO' : user.messageSpam}*\n\n🤯 *¡CUANDO TE BANEARON, EL BOT TAMBIÉN SE RÍÓ!* 🤯\n\n👉 *SI CREES QUE ESTO ES UN ERROR* 👉\n👉 *¿Tienes pruebas? Puedes exponer tu caso en:* 👉\n*${ig}*\n*Y si eso no funciona, siempre está ${asistencia} para escuchar tus quejas* 🤷‍♂️\n\n🛑 *No intentes evadir el baneo o tendrás que enfrentar al* *ADMIN RÍE* 🤣`)
+user.antispam++	
+return
 }
 
-// Antispam 2
-// Si el usuario tiene activado el antispam2 y es el propietario (ROwner), se omite el control de spam.
+//Antispam 2		
 if (user.antispam2 && isROwner) return
-
-// Calcula el nuevo tiempo permitiendo el envío de mensajes.
-// Se agrega 3000 milisegundos (3 segundos) al último tiempo registrado.
 let time = global.db.data.users[m.sender].spam + 3000
-
-// Verifica si el tiempo transcurrido desde el último mensaje es menor a 3000 milisegundos (3 segundos).
-// Si es así, considera el mensaje como spam y muestra un mensaje en la consola.
-if (new Date - global.db.data.users[m.sender].spam < 3000) return console.log(`[ SPAM ]`)
-
-// Actualiza el tiempo del último mensaje para el usuario con la fecha actual en milisegundos.
+if (new Date - global.db.data.users[m.sender].spam < 3000) return console.log(`[ SPAM ]`) 
 global.db.data.users[m.sender].spam = new Date * 1
 }
-
-// Define el prefijo a utilizar para identificar comandos.
+		
 let hl = _prefix 
-
-// Obtiene el modo de administración del grupo desde la base de datos.
 let adminMode = global.db.data.chats[m.chat].modoadmin
-
-// Define una variable 'gata' que verifica si alguno de los plugins está activo o si el comando coincide con el prefijo.
 let gata = `${plugins.botAdmin || plugins.admin || plugins.group || plugins || noPrefix || hl ||  m.text.slice(0, 1) == hl || plugins.command}`
-
-// Si el modo de administración está activado, el usuario no es el propietario del bot (isOwner), 
-// no es el propietario del bot (isROwner), está en un grupo (m.isGroup), 
-// no es un administrador del grupo (isAdmin), y 'gata' tiene un valor,
-// entonces se detiene la ejecución del código.
 if (adminMode && !isOwner && !isROwner && m.isGroup && !isAdmin && gata) return   
-
-// Si el plugin tiene un propietario ('rowner') y un propietario definido ('owner'), 
-// y el usuario que envió el mensaje no es ni el propietario del bot ni el propietario del bot,
-// se llama a la función 'fail' con el mensaje 'owner' y se continúa con la siguiente iteración.
-if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { // número bot owner
-    fail('owner', m, this) // Llama a la función 'fail' con el tipo 'owner'.
-    continue // Continua con la siguiente iteración del bucle.
+if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { //número bot owner
+fail('owner', m, this)
+continue
 }
-// Verifica si el usuario es el propietario del bot y si no es un ROwner (propietario de alto nivel).
-if (plugin.rowner && !isROwner) { // Propietario de bot de alto nivel
-    fail('rowner', m, this) // Llama a la función 'fail' con el tipo 'rowner'.
-    continue // Continúa con la siguiente iteración del bucle.
+if (plugin.rowner && !isROwner) { //Owner
+fail('rowner', m, this)
+continue
 }
-
-// Verifica si el usuario es el propietario del bot y si no es un Owner (propietario).
-if (plugin.owner && !isOwner) { // Propietario del bot
-    fail('owner', m, this) // Llama a la función 'fail' con el tipo 'owner'.
-    continue // Continúa con la siguiente iteración del bucle.
+if (plugin.owner && !isOwner) { //Propietario/Owner
+fail('owner', m, this)
+continue
 }
-
-// Verifica si el usuario tiene el rol de moderador y si no es un Mods (moderador).
-if (plugin.mods && !isMods) { // Moderador
-    fail('mods', m, this) // Llama a la función 'fail' con el tipo 'mods'.
-    continue // Continúa con la siguiente iteración del bucle.
+if (plugin.mods && !isMods) { // Moderator
+fail('mods', m, this)
+continue
 }
-
-// Verifica si el usuario tiene una suscripción premium y si no es Premium.
 if (plugin.premium && !isPrems) { // Premium
-    fail('premium', m, this) // Llama a la función 'fail' con el tipo 'premium'.
-    continue // Continúa con la siguiente iteración del bucle.
+fail('premium', m, this)
+continue
 }
-// Verifica si el comando está restringido a grupos y si el mensaje no está en un grupo.
-if (plugin.group && !m.isGroup) { // Solo en grupo
-    fail('group', m, this) // Llama a la función 'fail' con el tipo 'group'.
-    continue // Continúa con la siguiente iteración del bucle.
-} else if (plugin.botAdmin && !isBotAdmin) { // Detecta si el bot es administrador y si no lo es.
-    fail('botAdmin', m, this) // Llama a la función 'fail' con el tipo 'botAdmin'.
-    continue // Continúa con la siguiente iteración del bucle.
-} else if (plugin.admin && !isAdmin) { // Detecta si el usuario es administrador y si no lo es.
-    fail('admin', m, this) // Llama a la función 'fail' con el tipo 'admin'.
-    continue // Continúa con la siguiente iteración del bucle.
+if (plugin.group && !m.isGroup) { //Solo el grupo
+fail('group', m, this)
+continue
+} else if (plugin.botAdmin && !isBotAdmin) { //Detecta si el bot es admins
+fail('botAdmin', m, this)
+continue
+} else if (plugin.admin && !isAdmin) { //admins
+fail('admin', m, this)
+continue
 }
-
-// Verifica si el comando está restringido a chats privados y si el mensaje está en un grupo.
-if (plugin.private && m.isGroup) { // Solo en chat privado
-    fail('private', m, this) // Llama a la función 'fail' con el tipo 'private'.
-    continue // Continúa con la siguiente iteración del bucle.
+if (plugin.private && m.isGroup) { //Solo chat privado
+fail('private', m, this)
+continue
 }
-
-// Verifica si el comando requiere que el usuario esté registrado y si el usuario no está registrado.
-if (plugin.register == true && _user.registered == false) { // Usuario registrado
-    fail('unreg', m, this) // Llama a la función 'fail' con el tipo 'unreg'.
-    continue // Continúa con la siguiente iteración del bucle.
+if (plugin.register == true && _user.registered == false) { // user registrado? 
+fail('unreg', m, this)
+continue
 }
-
 
 m.isCommand = true
 let xp = 'exp' in plugin ? parseInt(plugin.exp) : 10 // Ganancia de XP por comando
