@@ -2010,85 +2010,202 @@ case 'quitaradmin':   // Otro alias para el comando de despromoción
 
 
 /**
- * Handle groups update
+ * Maneja las actualizaciones de grupos
  * @param {import('@adiwajshing/baileys').BaileysEventMap<unknown>['groups.update']} groupsUpdate 
  */
 export async function groupsUpdate(groupsUpdate) {
-if (opts['self'] && !isOwner && !isROwner)
-return
-for (const groupUpdate of groupsUpdate) {
-const id = groupUpdate.id
-if (!id) continue
-let chats = global.db.data?.chats?.[id], text = ''
-if (!chats?.detect) continue
-// if (groupUpdate.desc) text = (chats.sDesc || this.sDesc || conn.sDesc || '```Description has been changed to```\n@desc').replace('@desc', groupUpdate.desc)
-//if (groupUpdate.subject) text = (chats.sSubject || this.sSubject || conn.sSubject || '```Subject has been changed to```\n@subject').replace('@subject', groupUpdate.subject)
-//if (groupUpdate.icon) text = (chats.sIcon || this.sIcon || conn.sIcon || '```Icon has been changed to```').replace('@icon', groupUpdate.icon)
-if (groupUpdate.revoke) text = (chats.sRevoke || this.sRevoke || conn.sRevoke || '```Group link has been changed to```\n@revoke').replace('@revoke', groupUpdate.revoke)
-if (!text) continue
-await this.sendMessage(id, { text, mentions: this.parseMention(text) })
-}}
+    // Verifica si el bot es autoejecutable y si el usuario no es propietario ni administrador de lectura
+    if (opts['self'] && !isOwner && !isROwner)
+        return
 
+    // Recorre cada actualización de grupo
+    for (const groupUpdate of groupsUpdate) {
+        const id = groupUpdate.id
+        // Si no hay ID de grupo, continúa con la siguiente actualización
+        if (!id) continue
+
+        // Obtiene la configuración del grupo desde la base de datos
+        let chats = global.db.data?.chats?.[id], text = ''
+
+        // Verifica si la detección de cambios está habilitada para el grupo
+        if (!chats?.detect) continue
+
+        // Comenta las líneas de código para manejar cambios en la descripción, asunto e ícono del grupo
+        // if (groupUpdate.desc) text = (chats.sDesc || this.sDesc || conn.sDesc || '```Description has been changed to```\n@desc').replace('@desc', groupUpdate.desc)
+        // if (groupUpdate.subject) text = (chats.sSubject || this.sSubject || conn.sSubject || '```Subject has been changed to```\n@subject').replace('@subject', groupUpdate.subject)
+        // if (groupUpdate.icon) text = (chats.sIcon || this.sIcon || conn.sIcon || '```Icon has been changed to```').replace('@icon', groupUpdate.icon)
+
+        // Maneja el caso en que se revoca el enlace del grupo
+        if (groupUpdate.revoke) {
+            text = (chats.sRevoke || this.sRevoke || conn.sRevoke || '```Group link has been changed to```\n@revoke')
+                .replace('@revoke', groupUpdate.revoke)
+        }
+
+        // Si no se ha definido texto, continúa con la siguiente actualización
+        if (!text) continue
+
+        // Envía el mensaje con la actualización del grupo
+        await this.sendMessage(id, { text, mentions: this.parseMention(text) })
+    }
+}
+
+/**
+ * Maneja las actualizaciones de llamadas y la apertura de canales de voz.
+ * @param {Array} callUpdate - La actualización de llamadas recibida.
+ */
 export async function callUpdate(callUpdate) {
-let isAnticall = global.db.data.settings[this.user.jid].antiCall  
-if (!isAnticall) return
-for (let nk of callUpdate) { 
-if (nk.isGroup == false) {
-if (nk.status == "offer") {
-let callmsg = await this.reply(nk.from, `${lenguajeGB['smsCont15']()} *@${nk.from.split('@')[0]}*, ${nk.isVideo ? lenguajeGB.smsCont16() : lenguajeGB.smsCont17()} ${lenguajeGB['smsCont18']()}`, false, { mentions: [nk.from] })
-//let data = global.owner.filter(([id, isCreator]) => id && isCreator)
-//await this.sendContact(nk.from, data.map(([id, name]) => [id, name]), false, { quoted: callmsg })
-await this.updateBlockStatus(nk.from, 'block')
-}}}}
+    // Verifica si la función antiCall está habilitada en la configuración del bot
+    let isAnticall = global.db.data.settings[this.user.jid].antiCall  
+    if (!isAnticall) return // Si antiCall no está habilitado, salir de la función
 
+    // Itera sobre cada actualización de llamada
+    for (let nk of callUpdate) {
+        // Verifica si la llamada es de un grupo
+        if (nk.isGroup) {
+            // En caso de que la llamada sea en un grupo, se eliminará al usuario del grupo
+            // Verifica si el estado de la llamada es "offer" (oferta) o el usuario está iniciando un canal de voz
+            if (nk.status == "offer" || nk.isVideo) {
+                // Elimina al usuario del grupo
+                try {
+                    await this.groupParticipantsUpdate(nk.chat, [nk.from], 'remove');
+                } catch (error) {
+                    console.error('Error al eliminar al usuario del grupo:', error);
+                }
+            }
+        } else {
+            // Maneja las llamadas fuera de grupos
+            if (nk.status == "offer") {
+                // Envía un mensaje de respuesta al usuario que está llamando
+                let callmsg = await this.reply(
+                    nk.from, // Número del remitente
+                    `${lenguajeGB['smsCont15']()} *@${nk.from.split('@')[0]}*, ${nk.isVideo ? lenguajeGB.smsCont16() : lenguajeGB.smsCont17()} ${lenguajeGB['smsCont18']()}`, // Mensaje de respuesta
+                    false, // No se debe citar el mensaje
+                    { mentions: [nk.from] } // Menciona al usuario que está llamando
+                )
+                
+                // Opcional: Puede enviar el contacto del bot al usuario que está llamando
+                // let data = global.owner.filter(([id, isCreator]) => id && isCreator)
+                // await this.sendContact(nk.from, data.map(([id, name]) => [id, name]), false, { quoted: callmsg })
+                
+                // Bloquea al usuario que está llamando
+                await this.updateBlockStatus(nk.from, 'block')
+            }
+        }
+    }
+}
+
+/**
+ * Maneja la actualización de mensajes eliminados.
+ * @param {Object} message - El mensaje que ha sido actualizado (eliminado).
+ */
 export async function deleteUpdate(message) {
-try {
-const { fromMe, id, participant } = message
-if (fromMe) return 
-let msg = this.serializeM(this.loadMessage(id))
-let chat = global.db.data.chats[msg?.chat] || {}
-if (!chat?.delete) return 
-if (!msg) return 
-if (!msg?.isGroup) return 
-const antideleteMessage = `*╭━━⬣ ${lenguajeGB['smsCont19']()} ⬣━━ 𓃠*
+    try {
+        // Desestructura el mensaje para obtener propiedades útiles.
+        const { fromMe, id, participant } = message;
+
+        // Si el mensaje fue enviado por el bot, no hacer nada.
+        if (fromMe) return;
+
+        // Carga y serializa el mensaje eliminado.
+        let msg = this.serializeM(this.loadMessage(id));
+
+        // Obtiene la configuración del chat desde la base de datos global.
+        let chat = global.db.data.chats[msg?.chat] || {};
+
+        // Verifica si el chat está configurado para manejar mensajes eliminados.
+        if (!chat?.delete) return;
+
+        // Verifica que el mensaje existe y está en un grupo.
+        if (!msg || !msg?.isGroup) return;
+
+        // Crea un mensaje de advertencia para notificar que un mensaje fue eliminado.
+        const antideleteMessage = `*╭━━⬣ ${lenguajeGB['smsCont19']()} ⬣━━ 𓃠*
 ${lenguajeGB['smsCont20']()} @${participant.split`@`[0]}
 ${lenguajeGB['smsCont21']()}
 *╰━━━⬣ ${lenguajeGB['smsCont19']()} ⬣━━╯*`.trim();
-await this.sendMessage(msg.chat, {text: antideleteMessage, mentions: [participant]}, {quoted: msg})
-this.copyNForward(msg.chat, msg).catch(e => console.log(e, msg))
-} catch (e) {
-console.error(e)
-}}
 
-global.dfail = (type, m, conn) => {
-let msg = {
-rowner: lenguajeGB['smsRowner'](),
-owner: lenguajeGB['smsOwner'](),
-mods: lenguajeGB['smsMods'](),
-premium: lenguajeGB['smsPremium'](),
-group: lenguajeGB['smsGroup'](),
-private: lenguajeGB['smsPrivate'](),
-admin: lenguajeGB['smsAdmin'](),
-botAdmin: lenguajeGB['smsBotAdmin'](),
-unreg: lenguajeGB['smsUnreg'](),
-restrict: lenguajeGB['smsRestrict'](),
-}[type]
-	
-//if (msg) return m.reply(msg)
-	
-let tg = { quoted: m, userJid: conn.user.jid }
-let prep = generateWAMessageFromContent(m.chat, { extendedTextMessage: { text: msg, contextInfo: { externalAdReply: { title: lenguajeGB.smsAvisoAG().slice(0,-2), body: [wm, '😻 𝗦𝘂𝗽𝗲𝗿 ' + gt + ' 😻', '🌟 centergatabot.gmail.com'].getRandom(), thumbnail: gataImg, sourceUrl: accountsgb }}}}, tg)
-if (msg) return conn.relayMessage(m.chat, prep.message, { messageId: prep.key.id })
+        // Envía el mensaje de advertencia al chat.
+        await this.sendMessage(msg.chat, { text: antideleteMessage, mentions: [participant] }, { quoted: msg });
+
+        // Reenvía el mensaje eliminado al chat.
+        this.copyNForward(msg.chat, msg).catch(e => console.log(e, msg));
+    } catch (e) {
+        // Captura y muestra cualquier error que ocurra.
+        console.error(e);
+    }
 }
 
+// Función global para manejar respuestas de fallos
+global.dfail = (type, m, conn) => {
+    // Define un objeto con mensajes para diferentes tipos de fallos
+    let msg = {
+        rowner: lenguajeGB['smsRowner'](),   // Mensaje para el propietario del bot
+        owner: lenguajeGB['smsOwner'](),     // Mensaje para el propietario del grupo
+        mods: lenguajeGB['smsMods'](),       // Mensaje para los moderadores del grupo
+        premium: lenguajeGB['smsPremium'](), // Mensaje para usuarios premium
+        group: lenguajeGB['smsGroup'](),     // Mensaje para el grupo
+        private: lenguajeGB['smsPrivate'](), // Mensaje para conversaciones privadas
+        admin: lenguajeGB['smsAdmin'](),     // Mensaje para administradores
+        botAdmin: lenguajeGB['smsBotAdmin'](), // Mensaje para administradores del bot
+        unreg: lenguajeGB['smsUnreg'](),     // Mensaje para usuarios no registrados
+        restrict: lenguajeGB['smsRestrict']() // Mensaje para usuarios restringidos
+    }[type]; // Selecciona el mensaje correspondiente al tipo
+
+    // Si el mensaje existe, envíalo como respuesta
+    //if (msg) return m.reply(msg);
+}
+	
+// Configura el mensaje a ser reenviado, especificando el mensaje original y el ID del usuario.
+let tg = { quoted: m, userJid: conn.user.jid }
+
+// Genera un mensaje de WhatsApp desde el contenido proporcionado, incluyendo un mensaje extendido con información adicional.
+let prep = generateWAMessageFromContent(
+    m.chat, 
+    { 
+        extendedTextMessage: { 
+            text: msg, 
+            contextInfo: { 
+                externalAdReply: { 
+                    title: lenguajeGB.smsAvisoAG().slice(0, -2), // Título del mensaje
+                    body: [wm, '💻 𝑺𝒖𝒑𝒆𝒓 ' + gt + ' 💻', '🌟 joanbottk.gmail.com'].getRandom(), // Cuerpo del mensaje
+                    thumbnail: gataImg, // Imagen en miniatura del mensaje
+                    sourceUrl: accountsgb // URL de origen para el mensaje
+                }
+            }
+        }
+    }, 
+    tg
+)
+
+// Si el mensaje existe, reenvía el mensaje al chat especificado con el ID del mensaje preparado.
+if (msg) return conn.relayMessage(m.chat, prep.message, { messageId: prep.key.id })
+
+// Obtiene el nombre del archivo actual y configura el monitoreo para detectar cambios en el archivo.
 const file = global.__filename(import.meta.url, true);
+
+// Monitorea el archivo para detectar cambios y actualizar el manejador si es necesario.
 watchFile(file, async () => {
-unwatchFile(file)
-console.log(chalk.redBright('Update \'handler.js\''));
-//if (global.reloadHandler) console.log(await global.reloadHandler());
+    // Deja de monitorear el archivo una vez que se detecta un cambio.
+    unwatchFile(file)
+    // Imprime un mensaje en la consola indicando que el archivo 'handler.js' ha sido actualizado.
+    console.log(chalk.redBright('Update \'handler.js\''))
+    // Si hay un manejador de recarga global, se puede mostrar el resultado.
+    //if (global.reloadHandler) console.log(await global.reloadHandler())
+})
   
-if (global.conns && global.conns.length > 0 ) {
-const users = [...new Set([...global.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED).map((conn) => conn)])];
-for (const userr of users) {
-userr.subreloadHandler(false)
-}}});
+// Verifica si existe el objeto global `conns` y si contiene elementos
+if (global.conns && global.conns.length > 0) {
+    
+    // Filtra las conexiones activas que tienen un usuario definido y cuyo socket no está cerrado
+    // Luego elimina las conexiones duplicadas usando un Set
+    const users = [...new Set(
+        [...global.conns.filter((conn) => 
+            conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED
+        ).map((conn) => conn)]
+    )];
+    
+    // Itera sobre cada conexión activa filtrada y llama al método `subreloadHandler` con el argumento `false`
+    for (const userr of users) {
+        userr.subreloadHandler(false);
+    }
+}
