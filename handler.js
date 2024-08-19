@@ -1580,184 +1580,88 @@ let extra = {
     __filename
 }
 try {
-    // Intenta llamar al plugin con los parámetros dados
-    await plugin.call(this, m, extra);
-
-    // Si el usuario no tiene permisos (no es un admin o similar)
-    if (!isPrems) {
-        // Configura los límites y el dinero de 'm' con valores del plugin o false si no están definidos
-        m.limit = m.limit || plugin.limit || false;
-        m.money = m.money || plugin.money || false;
-    }
+await plugin.call(this, m, extra)
+if (!isPrems)
+m.limit = m.limit || plugin.limit || false
+m.money = m.money || plugin.money || false
 } catch (e) {
-    // Si ocurre un error, se ejecuta esta sección
-    m.error = e; // Guarda el error en el objeto 'm'
-    console.error(e); // Muestra el error en la consola
-
-    if (e) {
-        // Si hay un error, se procesa el texto del error
-        let text = format(e);
-
-        // Reemplaza las claves de la API con '#HIDDEN#' en el texto del error
-        for (let key of Object.values(global.APIKeys)) {
-            text = text.replace(new RegExp(key, 'g'), '#HIDDEN#');
-        }
-
-        // Si el error tiene un nombre, se notifica a los desarrolladores
-        if (e.name) {
-            // Recorre los IDs de los desarrolladores
-            for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
-                // Obtiene la información del número de WhatsApp
-                let data = (await conn.onWhatsApp(jid))[0] || {};
-
-                if (data.exists) {
-                    // Envía un mensaje al desarrollador con detalles del error
-                    m.reply(`${lenguajeGB['smsCont1']()}\n\n${lenguajeGB['smsCont2']()}\n*_${name}_*\n\n${lenguajeGB['smsCont3']()}\n*_${m.sender}_*\n\n${lenguajeGB['smsCont4']()}\n*_${m.text}_*\n\n${lenguajeGB['smsCont5']()}\n\`\`\`${format(e)}\`\`\`\n\n${lenguajeGB['smsCont6']()}`.trim(), data.jid);
-                }
-            }
-        }
-    }
+// Error occured
+m.error = e
+console.error(e)
+if (e) {
+let text = format(e)
+for (let key of Object.values(global.APIKeys))
+text = text.replace(new RegExp(key, 'g'), '#HIDDEN#')
+if (e.name)
+for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
+let data = (await conn.onWhatsApp(jid))[0] || {}
+if (data.exists)
+m.reply(`${lenguajeGB['smsCont1']()}\n\n${lenguajeGB['smsCont2']()}\n*_${name}_*\n\n${lenguajeGB['smsCont3']()}\n*_${m.sender}_*\n\n${lenguajeGB['smsCont4']()}\n*_${m.text}_*\n\n${lenguajeGB['smsCont5']()}\n\`\`\`${format(e)}\`\`\`\n\n${lenguajeGB['smsCont6']()}`.trim(), data.jid)
 }
+m.reply(text)
+}} finally {
+// m.reply(util.format(_user))
+if (typeof plugin.after === 'function') {
 try {
-    // Envía el texto al chat
-    m.reply(text);
-} finally {
-    // Bloque 'finally' se ejecuta siempre, haya habido un error o no
-
-    // Verifica si existe una función 'after' en el plugin y la ejecuta
-    if (typeof plugin.after === 'function') {
-        try {
-            // Llama a la función 'after' del plugin con el contexto y parámetros dados
-            await plugin.after.call(this, m, extra);
-        } catch (e) {
-            // Si ocurre un error al ejecutar la función 'after', lo muestra en la consola
-            console.error(e);
-        }
-    }
-
-    // Si 'm.limit' está definido, envía un mensaje con el límite y un texto de lenguaje
-    if (m.limit) {
-        m.reply(+m.limit + lenguajeGB.smsCont8());
-    }
-
-    // Si 'm.money' está definido, envía un mensaje con el dinero y un texto específico
-    if (m.money) {
-        m.reply(+m.money + ' 𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔 💻 𝒖𝒔𝒂𝒅𝒐(𝒔)');
-    }
-
-    // Sale del bloque de control
-    break;
+await plugin.after.call(this, m, extra)
 } catch (e) {
-    // Si ocurre un error en cualquier parte del bloque 'try', lo muestra en la consola
-    console.error(e);
+console.error(e)
+}}
+if (m.limit)
+m.reply(+m.limit + lenguajeGB.smsCont8())
+}
+if (m.money)
+m.reply(+m.money + ' 𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔 💻 𝒖𝒔𝒂𝒅𝒐(𝒔)') 
+
+break
+}}} catch (e) {
+console.error(e)
 } finally {
-    // Otro bloque 'finally' que se ejecuta siempre, haya habido un error o no
-
-    // Verifica si la opción 'queque' está activada y si 'm.text' tiene un valor
-    if (opts['queque'] && m.text) {
-        // Busca el índice del mensaje en la cola de mensajes
-        const quequeIndex = this.msgqueque.indexOf(m.id || m.key.id);
-        // Si el mensaje está en la cola, lo elimina
-        if (quequeIndex !== -1) {
-            this.msgqueque.splice(quequeIndex, 1);
-        }
-    }
+if (opts['queque'] && m.text) {
+const quequeIndex = this.msgqueque.indexOf(m.id || m.key.id)
+if (quequeIndex !== -1)
+this.msgqueque.splice(quequeIndex, 1)
 }
-// Imprime los datos del usuario en la consola (comentado)
-// console.log(global.db.data.users[m.sender])
-
-// Declara variables para el usuario y las estadísticas
-let user, stats = global.db.data.stats;
-
-// Verifica si el objeto 'm' existe
-if (m) {
-    // Obtiene los datos del usuario desde la base de datos usando el identificador del remitente
-    let utente = global.db.data.users[m.sender];
-    
-    // Verifica si el usuario está en estado de silencio (muto)
-    if (utente.muto == true) {
-        // Obtiene el ID del mensaje y el participante asociado
-        let bang = m.key.id;
-        let cancellazzione = m.key.participant;
-        
-        // Envía un mensaje para eliminar el mensaje específico del chat
-        await conn.sendMessage(m.chat, {
-            delete: { 
-                remoteJid: m.chat, 
-                fromMe: false, 
-                id: bang, 
-                participant: cancellazzione 
-            }
-        });
-    }
-
-    // Verifica si el remitente existe en la base de datos
-    if (m.sender && (user = global.db.data.users[m.sender])) {
-        // Incrementa la experiencia del usuario con el valor de 'm.exp'
-        user.exp += m.exp;
-        
-        // Decrementa el límite del usuario usando el valor de 'm.limit'
-        user.limit -= m.limit * 1;
-        
-        // Decrementa el dinero del usuario usando el valor de 'm.money'
-        user.money -= m.money * 1;
-    }
+//console.log(global.db.data.users[m.sender])
+let user, stats = global.db.data.stats
+if (m) { let utente = global.db.data.users[m.sender]
+if (utente.muto == true) {
+let bang = m.key.id
+let cancellazzione = m.key.participant
+await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: cancellazzione }})
+}
+if (m.sender && (user = global.db.data.users[m.sender])) {
+user.exp += m.exp
+user.limit -= m.limit * 1
+user.money -= m.money * 1
 }
 
-// Declara una variable para almacenar las estadísticas del plugin
-let stat;
-
-// Verifica si 'm.plugin' está definido
+let stat
 if (m.plugin) {
-    // Obtiene la fecha y hora actual en milisegundos
-    let now = +new Date();
-
-    // Verifica si el plugin ya existe en las estadísticas
-    if (m.plugin in stats) {
-        // Obtiene las estadísticas del plugin existente
-        stat = stats[m.plugin];
-
-        // Asegura que 'stat.total' sea un número, inicializa en 1 si no lo es
-        if (!isNumber(stat.total)) {
-            stat.total = 1;
-        }
-
-        // Asegura que 'stat.success' sea un número, inicializa en 0 si hay un error, o 1 si no lo hay
-        if (!isNumber(stat.success)) {
-            stat.success = m.error != null ? 0 : 1;
-        }
-
-        // Asegura que 'stat.last' sea un número, inicializa en la hora actual si no lo es
-        if (!isNumber(stat.last)) {
-            stat.last = now;
-        }
-
-        // Asegura que 'stat.lastSuccess' sea un número, inicializa en 0 si hay un error, o en la hora actual si no lo hay
-        if (!isNumber(stat.lastSuccess)) {
-            stat.lastSuccess = m.error != null ? 0 : now;
-        }
-    } else {
-        // Si el plugin no existe en las estadísticas, lo crea e inicializa con valores predeterminados
-        stat = stats[m.plugin] = {
-            total: 1,
-            success: m.error != null ? 0 : 1,
-            last: now,
-            lastSuccess: m.error != null ? 0 : now
-        };
-    }
-
-    // Incrementa el total de estadísticas
-    stat.total += 1;
-
-    // Actualiza la última hora registrada
-    stat.last = now;
-
-    // Si no hubo un error, incrementa el conteo de éxitos y actualiza la última hora de éxito
-    if (m.error == null) {
-        stat.success += 1;
-        stat.lastSuccess = now;
-    }
+let now = +new Date
+if (m.plugin in stats) {
+stat = stats[m.plugin]
+if (!isNumber(stat.total))
+stat.total = 1
+if (!isNumber(stat.success))
+stat.success = m.error != null ? 0 : 1
+if (!isNumber(stat.last))
+stat.last = now
+if (!isNumber(stat.lastSuccess))
+stat.lastSuccess = m.error != null ? 0 : now
+} else
+stat = stats[m.plugin] = {
+total: 1,
+success: m.error != null ? 0 : 1,
+last: now,
+lastSuccess: m.error != null ? 0 : now
 }
+stat.total += 1
+stat.last = now
+if (m.error == null) {
+stat.success += 1
+stat.lastSuccess = now
+}}}
 
 try {
 if (!opts['noprint']) await (await import(`./lib/print.js`)).default(m, this)
