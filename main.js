@@ -396,10 +396,11 @@ async function filesInit() {
     for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
         try {
             const file = global.__filename(path.join(pluginFolder, filename));
+            console.log(`Loading file: ${file}`);
             const module = await import(file);
             global.plugins[filename] = module.default || module;
         } catch (e) {
-            conn.logger.error(e);
+            conn.logger.error(`Error loading plugin ${filename}:`, e);
             delete global.plugins[filename];
         }
     }
