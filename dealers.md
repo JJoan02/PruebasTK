@@ -5,5 +5,5 @@
 
 | USUARIO                     | CÓDIGO                      | CONTACTO            | ESTADO |
 |-----------------------------|-----------------------------|----------------------|--------|
-| [**NADIE**](https://github.com/NADIE) | `NADIE` | `IG: @NADIE` | ✅     |
+| [**NADIE**](https://github.com/NADIE) | `NADIE` | `IG: @NADIE` | ⚪     |
 | ⚪                           | ⚪                           | ⚪                    | ⚪      |
