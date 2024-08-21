@@ -1,155 +1,115 @@
-import express from 'express'
-import { createServer } from 'http'
-import path from 'path'
-import { Socket } from 'socket.io'
-import { toBuffer } from 'qrcode'
-import fetch from 'node-fetch'
+import express from 'express';
+import { createServer } from 'http';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { toBuffer } from 'qrcode';
+import fetch from 'node-fetch';
+import fs from 'fs/promises';
+import { watchFile, unwatchFile } from 'fs';
 
+// Configuración global
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const configPath = join(__dirname, 'config.js');
+
+// Función principal para conectar el servidor
 function connect(conn, PORT) {
-let app = global.app = express()
-console.log(app)
-let server = global.server = createServer(app)
-let _qr = 'invalid'
+  const app = global.app = express();
+  const server = global.server = createServer(app);
+  let _qr = 'QR invalido, probablemente ya hayas escaneado el QR.';
 
-conn.ev.on('connection.update', function appQR({ qr }) {
-if (qr) _qr = qr
-})
-
-app.use(async (req, res) => {
-res.setHeader('content-type', 'image/png')
-res.end(await toBuffer(_qr))
-})
-  
-server.listen(PORT, () => {
-console.log('App listened on port', PORT)
-if (opts['keepalive']) keepAlive()
-})}
-
-function pipeEmit(event, event2, prefix = '') {
-let old = event.emit
-event.emit = function (event, ...args) {
-old.emit(event, ...args)
-event2.emit(prefix + event, ...args)
-}
-return {
-unpipeEmit() {
-event.emit = old
-}}} 
-
-function keepAlive() {
-const url = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-if (/(\/\/|\.)undefined\./.test(url)) return
-setInterval(() => {
-fetch(url).catch(console.error)
-}, 5 * 1000 * 60)}
-
-export default connect
-
-import express from 'express' 
-import {createServer} from 'http'
-import path from 'path'
-import { join, dirname } from 'path'
-import {Socket} from 'socket.io'
-import {toBuffer} from 'qrcode'
-import fetch from 'node-fetch'
-//import fs from 'fs'
-import fs from 'fs/promises'
-import { watchFile, unwatchFile } from "fs"
-import { fileURLToPath } from "url"
- 
-function connect(conn, PORT) {
-  const app = global.app = express()
-  //console.log(app)
-  const server = global.server = createServer(app)
-  let _qr = 'QR invalido, probablemente ya hayas escaneado el QR.'
-
-  conn.ev.on('connection.update', function appQR({qr}) {
+  // Actualización del código QR
+  conn.ev.on('connection.update', function appQR({ qr }) {
     if (qr) {
-      _qr = qr
+      _qr = qr;
       if (global.keepAliveRender === 1 && process.env.RENDER_EXTERNAL_URL) {
         console.log(`Para obtener el código QR ingresa a ${process.env.RENDER_EXTERNAL_URL}/get-qr-code`);
       }
-    } 
-  })
-  
+    }
+  });
+
+  // Ruta para obtener el código QR
   app.get('/get-qr-code', async (req, res) => {
-    res.setHeader('content-type', 'image/png')
-    res.end(await toBuffer(_qr))
+    res.setHeader('content-type', 'image/png');
+    res.end(await toBuffer(_qr));
   });
 
+  // Ruta por defecto
   app.get('*', async (req, res) => {
-    res.json("GATABOT-MD en ejecución");
+    res.json("Admin-TK en ejecución");
   });
 
+  // Iniciar el servidor
   server.listen(PORT, async () => {
-    console.log('App listened on port', PORT)
+    console.log('App escuchando en el puerto', PORT);
     if (global.keepAliveRender === 1) await keepAliveHostRender();
-    if (opts['keepalive']) keepAlive()
-  })
+    if (opts['keepalive']) keepAlive();
+  });
 }
 
+// Función para emitir eventos y replicar en otro objeto
 function pipeEmit(event, event2, prefix = '') {
-  const old = event.emit;
-  event.emit = function(event, ...args) {
-    old.emit(event, ...args)
-    event2.emit(prefix + event, ...args)
-  }
+  const oldEmit = event.emit;
+  event.emit = function(eventName, ...args) {
+    oldEmit.call(event, eventName, ...args);
+    event2.emit(prefix + eventName, ...args);
+  };
   return {
     unpipeEmit() {
-      event.emit = old
-    }}
+      event.emit = oldEmit;
+    }
+  };
 }
 
+// Función para mantener la conexión activa
 function keepAlive() {
-  const url = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-  if (/(\/\/|\.)undefined\./.test(url)) return
+  const url = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+  if (/(\/\/|\.)undefined\./.test(url)) return;
   setInterval(() => {
-    fetch(url).catch(console.error)
-  }, 5 * 1000 * 60)
+    fetch(url).catch(console.error);
+  }, 5 * 1000 * 60);
 }
 
-
-//Kurt18: Esta función va impedir que Render vaya a modo suspensión por inactividad
+// Función para mantener el host en ejecución en Render.com
 const keepAliveHostRender = async () => {
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-  
-//const configPath = path.join(__dirname, 'config.js')
-const configPath = join(__dirname, 'config.js')
-let configContent = await fs.readFile(configPath, 'utf8')
+  let configContent = await fs.readFile(configPath, 'utf8');
   try {
-      setInterval(async() => {
-        if (process.env.RENDER_EXTERNAL_URL) {
-          const urlRender = process.env.RENDER_EXTERNAL_URL;
-          const res = await fetch(urlRender);
-          if (res.status === 200) {
-            const result = await res.text();
-            console.log(`Resultado desde keepAliveHostRender() ->`, result);
-          }
-        } else {
-        const isInitialConfig = configContent.includes('global.obtenerQrWeb = 1;') && configContent.includes('global.keepAliveRender = 1;')
+    setInterval(async () => {
+      if (process.env.RENDER_EXTERNAL_URL) {
+        const urlRender = process.env.RENDER_EXTERNAL_URL;
+        const res = await fetch(urlRender);
+        if (res.status === 200) {
+          const result = await res.text();
+          console.log(`Resultado desde keepAliveHostRender() ->`, result);
+        }
+      } else {
+        const isInitialConfig = configContent.includes('global.obtenerQrWeb = 1;') && 
+                                configContent.includes('global.keepAliveRender = 1;');
         if (isInitialConfig) {
-          console.log(`No esta usando un Host de Render.com\nCambiando valores de "obtenerQrWeb" y "keepAliveRender" a 0 en 'config.js'`)
+          console.log(`No está usando un Host de Render.com\nCambiando valores de "obtenerQrWeb" y "keepAliveRender" a 0 en 'config.js'`);
           try {
-          configContent = configContent.replace('global.obtenerQrWeb = 1;', 'global.obtenerQrWeb = 0;')
-          configContent = configContent.replace('global.keepAliveRender = 1;', 'global.keepAliveRender = 0;')
-          await fs.writeFile(configPath, configContent, 'utf8')
-          console.log('Archivo de configuración actualizado con éxito.')
-        } catch (writeError) {
-          console.error(`Error al escribir el archivo de 'config.js': `, writeError)
-        }}
-}
-      }, 5 * 1000 * 60)
+            configContent = configContent.replace('global.obtenerQrWeb = 1;', 'global.obtenerQrWeb = 0;');
+            configContent = configContent.replace('global.keepAliveRender = 1;', 'global.keepAliveRender = 0;');
+            await fs.writeFile(configPath, configContent, 'utf8');
+            console.log('Archivo de configuración actualizado con éxito.');
+          } catch (writeError) {
+            console.error(`Error al escribir el archivo de 'config.js': `, writeError);
+          }
+        }
+      }
+    }, 5 * 1000 * 60);
   } catch (error) {
     console.log(`Error manejado en server.js keepAliveHostRender() detalles: ${error}`);
   }
-}
+};
 
-export default connect
+// Exportar la función de conexión
+export default connect;
 
+// Función para observar cambios en el archivo actual
 let file = fileURLToPath(import.meta.url);
 watchFile(file, () => {
-unwatchFile(file);
-console.log(chalk.redBright("Update 'server.js'"));
-import(`${file}?update=${Date.now()}`);
-})
+  unwatchFile(file);
+  console.log("Actualización en 'server.js'");
+  import(`${file}?update=${Date.now()}`);
+});
