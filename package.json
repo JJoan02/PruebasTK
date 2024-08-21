@@ -14,7 +14,7 @@
     "qr": "node index.js qr",
     "code": "node index.js code",
     "test": "node test.js",
-    "test2": "nodemon index.js"
+    "test2": "nodemon index.js",
     "update-npm": "npm install -g npm@latest",
     "install-deps": "npm install --registry=https://registry.npmjs.org/"
   },
@@ -104,3 +104,4 @@
     "eslint-config-google": "^0.14.0"
   }
 }
+
