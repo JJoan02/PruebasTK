@@ -1,6 +1,7 @@
 import { googleIt } from '@bochilteam/scraper';
 import google from 'google-it';
 import axios from 'axios';
+import * as cheerio from 'cheerio'; // Cambiado para manejar correctamente el import de cheerio
 
 const THUM_IO_URL = 'https://image.thum.io/get/fullpage/';
 const GOOGLE_SEARCH_URL = 'https://google.com/search?q=';
