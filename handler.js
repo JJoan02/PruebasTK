@@ -1015,6 +1015,7 @@ sWelcome: '',
 sBye: '',
 sPromote: '',
 sDemote: '', 
+sCondition: JSON.stringify([{ grupo: { usuario: [], condicion: [], admin: '' }, prefijos: []}]), 
 delete: false,
 modohorny: false,
 stickers: false,
@@ -1055,7 +1056,7 @@ if (!('restrict' in settings)) settings.restrict = true
 if (!('temporal' in settings)) settings.temporal = false
 if (!('antiPrivate' in settings)) settings.antiPrivate = false
 if (!('antiCall' in settings)) settings.antiCall = false
-if (!('antiSpam' in settings)) settings.antiSpam = false 
+if (!('antiSpam' in settings)) settings.antiSpam = true 
 if (!('modoia' in settings)) settings.modoia = false
 if (!('jadibotmd' in settings)) settings.jadibotmd = true 
 } else global.db.data.settings[this.user.jid] = {
@@ -1271,7 +1272,7 @@ continue
 			
 m.exp += xp
 if (!isPrems && plugin.limit && global.db.data.users[m.sender].limit < plugin.limit * 1) {
-this.sendMessage(m.chat, {text: `${lenguajeGB['smsCont7']()} *${usedPrefix}buy*`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 😻 𝗦𝘂𝗽𝗲𝗿 𝗚𝗮𝘁𝗮𝗕𝗼𝘁-𝗠𝗗 - 𝗪𝗵𝗮𝘁𝘀𝗔𝗽𝗽 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
+this.sendMessage(m.chat, {text: `${lenguajeGB['smsCont7']()} *${usedPrefix}buy*`,  contextInfo: {externalAdReply :{ mediaUrl: null, mediaType: 1, description: null, title: gt, body: ' 💻 𝑺𝒖𝒑𝒆𝒓 𝑨𝒅𝒎𝒊𝒏-𝑻𝑲 - 𝑾𝒉𝒂𝒕𝒔𝒂𝒑𝒑 ', previewType: 0, thumbnail: gataImg, sourceUrl: accountsgb }}}, { quoted: m })         
 //this.reply(m.chat, `${lenguajeGB['smsCont7']()} *${usedPrefix}buy*`, m)
 continue //Sin límite
 }
@@ -1335,7 +1336,7 @@ if (m.limit)
 m.reply(+m.limit + lenguajeGB.smsCont8())
 }
 if (m.money)
-m.reply(+m.money + ' 𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔 💻 𝒖𝒔𝒂𝒅𝒐(𝒔)') 
+m.reply(+m.money + ' 𝑱𝒐𝒂𝒏𝑪𝒐𝒊𝒏𝒔 🪙 𝒖𝒔𝒂𝒅𝒐(𝒔)') 
 
 break
 }}} catch (e) {
@@ -1567,7 +1568,7 @@ const file = global.__filename(import.meta.url, true);
 watchFile(file, async () => {
 unwatchFile(file)
 console.log(chalk.redBright('Update \'handler.js\''));
-//if (global.reloadHandler) console.log(await global.reloadHandler());
+if (global.reloadHandler) console.log(await global.reloadHandler());
   
 if (global.conns && global.conns.length > 0 ) {
 const users = [...new Set([...global.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED).map((conn) => conn)])];
