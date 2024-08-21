@@ -5,5 +5,5 @@
 
 | USUARIO                     | CÓDIGO                      | CONTACTO            | ESTADO |
 |-----------------------------|-----------------------------|----------------------|--------|
-| [**Richetti123**](https://github.com/Richetti123) | `KmZxVE5lIUVvrkqLd8EYJlC9G` | `IG: @richetti_123` | ✅     |
+| [**NADIE**](https://github.com/NADIE) | `NADIE` | `IG: @NADIE` | ✅     |
 | ⚪                           | ⚪                           | ⚪                    | ⚪      |
