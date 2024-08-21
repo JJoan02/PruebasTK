@@ -45,7 +45,7 @@ fetch(url).catch(console.error)
 
 export default connect
 
-/*import express from 'express' 
+import express from 'express' 
 import {createServer} from 'http'
 import path from 'path'
 import { join, dirname } from 'path'
@@ -153,4 +153,3 @@ unwatchFile(file);
 console.log(chalk.redBright("Update 'server.js'"));
 import(`${file}?update=${Date.now()}`);
 })
-*/
