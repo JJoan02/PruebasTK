@@ -1,16 +1,19 @@
-import { join, dirname } from 'path'
+import { join, dirname } from 'path';
 import { createRequire } from 'module';
-import { fileURLToPath } from 'url'
-import { setupMaster, fork } from 'cluster'
-import { watchFile, unwatchFile } from 'fs'
+import { fileURLToPath } from 'url';
+import * as cluster from 'cluster';  // Importar todo el módulo y luego acceder a las funciones
+import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
-import { createInterface } from 'readline'
-import yargs from 'yargs'
-import express from 'express'
-import chalk from 'chalk'
-import path from 'path'
-import os from 'os'
-import { promises as fsPromises } from 'fs'
+import { createInterface } from 'readline';
+import yargs from 'yargs';
+import express from 'express';
+import chalk from 'chalk';
+import path from 'path';
+import os from 'os';
+import { promises as fsPromises } from 'fs';
+
+// Acceso a las funciones `setupMaster` y `fork` desde `cluster`
+const { setupMaster, fork } = cluster;
 
 // https://stackoverflow.com/a/50052194
 const __dirname = dirname(fileURLToPath(import.meta.url))
