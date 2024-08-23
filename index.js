@@ -6,7 +6,6 @@ import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
 import yargs from 'yargs';
-import express from 'express';
 import chalk from 'chalk';
 import os from 'os';
 import { promises as fsPromises } from 'fs';
@@ -47,7 +46,6 @@ const { name, author } = require(join(__dirname, './package.json')); // https://
 const { say } = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
 
-// Función para mostrar texto con estilo en la consola
 const displayText = (text, options) => {
     const { font, align, gradient } = options;
     say(text, {
@@ -57,14 +55,12 @@ const displayText = (text, options) => {
     });
 };
 
-// Mostrar el texto '𝑨𝒅𝒎𝒊𝒏\n𝑻𝑲' en la consola con un estilo de fuente y gradiente específico
 displayText('Admin\nBot\nTK', {
     font: 'chrome',              // Estilo de fuente utilizado ('chrome')
     align: 'center',             // Alineación del texto en el centro
     gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
 });
 
-// Mostrar el texto 'Por 𝑱𝒐𝒂𝒏-𝑻𝑲' en la consola con otro estilo de fuente y gradiente de color
 displayText('Por Joan-TK', {
     font: 'console',             // Estilo de fuente utilizado ('console')
     align: 'center',             // Alineación del texto en el centro
@@ -86,36 +82,42 @@ async function start(file) {
         gradient: ['red', 'magenta']
     });
 
-    // Utiliza cluster.fork directamente
-    let worker = cluster.fork();
+    if (cluster.isMaster) {
+        // Master process
+        console.log(`Master ${process.pid} is running`);
+        const numCPUs = os.cpus().length;
+        for (let i = 0; i < numCPUs; i++) {
+            cluster.fork();
+        }
 
-    worker.on('message', data => {
-        switch (data) {
-            case 'reset':
-                worker.process.kill();
-                isRunning = false;
+        cluster.on('exit', (worker, code, signal) => {
+            console.error(`⚠️ Worker ${worker.process.pid} exited with code ${code}`);
+            if (code !== 0) {
+                console.log('Reiniciando proceso...');
                 start(file);
-                break;
-            case 'uptime':
-                worker.send(process.uptime());
-                break;
-        }
-    });
+            }
+        });
 
-    worker.on('exit', (_, code) => {
-        isRunning = false;
-        console.error('⚠️ ERROR ⚠️ >> ', code);
-        if (code !== 0) {
-            console.log('Reiniciando proceso...');
+        // Monitorea cambios en el archivo y reinicia si hay cambios
+        watchFile(args[0], () => {
+            unwatchFile(args[0]);
             start(file);
-        }
-    });
+        });
+    } else {
+        // Worker processes
+        console.log(`Worker ${process.pid} started`);
 
-    // Monitorea cambios en el archivo y reinicia si hay cambios
-    watchFile(args[0], () => {
-        unwatchFile(args[0]);
-        start(file);
-    });
+        process.on('message', data => {
+            switch (data) {
+                case 'reset':
+                    process.exit(0);
+                    break;
+                case 'uptime':
+                    process.send(process.uptime());
+                    break;
+            }
+        });
+    }
 
     const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
     const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
@@ -150,15 +152,19 @@ async function start(file) {
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
-setInterval(() => {}, 1000);
-} catch (err) {
-console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+        setInterval(() => {}, 1000);
+    } catch (err) {
+        console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+    }
+
+    let opts = yargs(process.argv.slice(2)).exitProcess(false).parse();
+    if (!opts['test']) {
+        if (!rl.listenerCount()) {
+            rl.on('line', line => {
+                process.send({ message: line.trim() });
+            });
+        }
+    }
 }
 
-let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
-if (!opts['test'])
-if (!rl.listenerCount()) rl.on('line', line => {
-p.emit('message', line.trim())
-})}
-
-start('main.js')
+start('main.js');
