@@ -4,7 +4,7 @@ import cheerio from 'cheerio';
 import yts from 'yt-search';
 import ytdl from 'ytdl-core';
 import { youtubedl, youtubedlv2 } from '@bochilteam/scraper';
-import { BioskopArgsSchema, BioskopSchema, BioskopNowSchema } from '../types/index.js';
+import { BioskopArgsSchema, BioskopSchema, BioskopNowSchema } from '../index.js';
 
 // Configuración de opciones para solicitudes HTTP
 const requestOptions = {
