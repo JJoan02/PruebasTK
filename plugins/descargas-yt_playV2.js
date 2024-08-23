@@ -1,11 +1,11 @@
-// Importaciones (usa 'require' para CommonJS)
+// Importaciones
 const cluster = require('cluster');
 const { fork } = require('child_process');
 const path = require('path');
 const fsPromises = require('fs').promises;
 const os = require('os');
 const { watchFile, unwatchFile } = require('fs');
-const { join } = require('path');
+const fetch = require('node-fetch'); // Asegúrate de instalar 'node-fetch'
 
 // Definición de variables
 let isRunning = false;
@@ -15,14 +15,10 @@ async function start(file) {
     if (isRunning) return;
     isRunning = true;
 
-    const currentFilePath = new URL(import.meta.url).pathname;
-    let args = [join(__dirname, file), ...process.argv.slice(2)];
+    const currentFilePath = path.resolve(__filename);
+    const args = [path.join(__dirname, file), ...process.argv.slice(2)];
 
-    displayText([process.argv[0], ...args].join(' '), {
-        font: 'console',
-        align: 'center',
-        gradient: ['red', 'magenta']
-    });
+    console.log(`Iniciando proceso con: ${[process.argv[0], ...args].join(' ')}`);
 
     if (cluster.isMaster) {
         cluster.setupMaster({
@@ -30,7 +26,7 @@ async function start(file) {
             args: args.slice(1)
         });
 
-        let p = cluster.fork();
+        const p = cluster.fork();
 
         p.on('message', data => {
             if (data === 'reset') {
@@ -58,6 +54,9 @@ async function start(file) {
 
         const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
         const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
+        console.log(`RAM total: ${ramInGB.toFixed(2)} GB`);
+        console.log(`RAM libre: ${freeRamInGB.toFixed(2)} GB`);
+
         const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
 
         try {
@@ -124,4 +123,3 @@ handler.command = ['play.1', 'play.2'];
 handler.limit = 1;
 
 module.exports = handler;
-
