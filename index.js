@@ -1,5 +1,4 @@
 import { join, dirname } from 'path';
-import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import * as cluster from 'cluster';
 import { watchFile, unwatchFile } from 'fs';
@@ -7,47 +6,16 @@ import cfonts from 'cfonts';
 import { createInterface } from 'readline';
 import yargs from 'yargs';
 import chalk from 'chalk';
-import path from 'path';
 import os from 'os';
-import { promises as fsPromises } from 'fs';
-import { z } from 'zod';
+import packageJson from './package.json' assert { type: 'json' };
 
-// Definir los esquemas con zod
-const BioskopArgsSchema = z.object({
-    page: z.number().min(1).max(4)
-});
+const { name, author } = packageJson;
 
-const BioskopSchema = z.object({
-    title: z.string(),
-    img: z.string(),
-    url: z.string(),
-    genre: z.string(),
-    duration: z.string(),
-    release: z.string(),
-    director: z.string(),
-    cast: z.string()
-});
-
-const BioskopNowSchema = z.object({
-    title: z.string(),
-    img: z.string(),
-    url: z.string(),
-    genre: z.string(),
-    duration: z.string(),
-    playingAt: z.string()
-});
-
-export { BioskopArgsSchema, BioskopSchema, BioskopNowSchema };
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(__dirname);
-const { name, author } = require(join(__dirname, './package.json'));
-const { say } = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
 
 const displayText = (text, options) => {
     const { font, align, gradient } = options;
-    say(text, {
+    cfonts.say(text, {
         font: font || 'default',
         align: align || 'left',
         gradient: gradient || ['white', 'black']
@@ -72,8 +40,8 @@ async function start(file) {
     if (isRunning) return;
     isRunning = true;
 
-    const currentFilePath = new URL(import.meta.url).pathname;
-    let args = [join(__dirname, file), ...process.argv.slice(2)];
+    const currentFilePath = fileURLToPath(import.meta.url);
+    let args = [join(dirname(currentFilePath), file), ...process.argv.slice(2)];
 
     displayText([process.argv[0], ...args].join(' '), {
         font: 'console',
@@ -116,15 +84,10 @@ async function start(file) {
 
         const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
         const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
-        const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
+        const currentTime = new Date().toLocaleString();
 
-        try {
-            const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
-            const packageJsonObj = JSON.parse(packageJsonData);
-            const currentTime = new Date().toLocaleString();
-
-            let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
-            console.log(chalk.yellow(`╭${lineM}
+        let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
+        console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`🖥️ ${os.type()}, ${os.release()} - ${os.arch()}`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💾 Total RAM: ${ramInGB.toFixed(2)} GB`)}
@@ -133,10 +96,10 @@ async function start(file) {
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
 ┊${chalk.blueBright('┊')} ${chalk.blue.bold(`🟢INFORMACIÓN :`)}
 ┊${chalk.blueBright('┊')} ${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
-┊${chalk.blueBright('┊')}${chalk.cyan(`💚 Nombre: ${packageJsonObj.name}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`💻 Versión: ${packageJsonObj.version}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`💜 Descripción: ${packageJsonObj.description}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`😺 Project Author: ${packageJsonObj.author.name} (@Joan-TK)`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`💚 Nombre: ${name}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`💻 Versión: ${packageJson.version}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`💜 Descripción: ${packageJson.description}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`😺 Project Author: ${author.name} (@Joan-TK)`)}
 ┊${chalk.blueBright('┊')}${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💜 Colaboradores:`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`• JJoan02 (Joan-TK)`)}
@@ -147,19 +110,21 @@ async function start(file) {
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
-            setInterval(() => {}, 1000);
         } catch (err) {
             console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
         }
+
     } else {
         console.log('Worker process started.');
     }
 
-    let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
+    const opts = yargs(process.argv.slice(2)).exitProcess(false).parse();
     if (!opts['test']) {
-        if (!rl.listenerCount()) rl.on('line', line => {
-            process.send(line.trim());
-        });
+        if (rl.listenerCount('line') === 0) {
+            rl.on('line', line => {
+                process.send(line.trim());
+            });
+        }
     }
 }
 
