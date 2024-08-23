@@ -392,6 +392,10 @@ const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = {};
 
 // Inicializa los plugins
+import { readdirSync } from 'fs';
+import path from 'path';
+
+// Inicializa los plugins
 async function filesInit() {
     for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
         try {
@@ -400,12 +404,19 @@ async function filesInit() {
             const module = await import(file);
             global.plugins[filename] = module.default || module;
         } catch (e) {
-            conn.logger.error(`Error loading plugin ${filename}:`, e);
+            console.error(`Error loading plugin ${filename}:`, e.message);
+            console.error(e.stack);
             delete global.plugins[filename];
         }
     }
 }
-filesInit().then((_) => Object.keys(global.plugins)).catch(console.error);
+
+filesInit().then(() => {
+    console.log('Plugins loaded successfully:', Object.keys(global.plugins));
+}).catch((err) => {
+    console.error('Error initializing plugins:', err.message);
+    console.error(err.stack);
+});
 
 // Maneja la actualización y carga de nuevos plugins
 global.reload = async (_ev, filename) => {
