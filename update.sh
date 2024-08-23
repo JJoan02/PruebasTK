@@ -1,8 +1,8 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
 # Variables de configuración
-BOT_DIR="GataBot-MD"
-BOT_REPO="https://github.com/GataNina-Li/$BOT_DIR"
+BOT_DIR="Admin-TK"
+BOT_REPO="https://github.com/JJoan02/$BOT_DIR"
 DB_FILE="database.json"
 
 # Colores para la salida en consola
