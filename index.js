@@ -5,72 +5,36 @@ import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
 import yargs from 'yargs';
-import express from 'express';
 import chalk from 'chalk';
 import os from 'os';
 import { promises as fsPromises } from 'fs';
-import { z } from 'zod'; // Importar zod para validar los esquemas
+import cluster from 'cluster';
 
 // Importar cluster usando createRequire
 const require = createRequire(import.meta.url);
-const cluster = require('cluster');
-
-// Definir los esquemas con zod
-const BioskopArgsSchema = z.object({
-    page: z.number().min(1).max(4)
-});
-
-const BioskopSchema = z.object({
-    title: z.string(),
-    img: z.string(),
-    url: z.string(),
-    genre: z.string(),
-    duration: z.string(),
-    release: z.string(),
-    director: z.string(),
-    cast: z.string()
-});
-
-const BioskopNowSchema = z.object({
-    title: z.string(),
-    img: z.string(),
-    url: z.string(),
-    genre: z.string(),
-    duration: z.string(),
-    playingAt: z.string()
-});
-
-// Exportar los esquemas para que estén disponibles en otros módulos si es necesario
-export { BioskopArgsSchema, BioskopSchema, BioskopNowSchema };
-
-// https://stackoverflow.com/a/50052194
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const { name, author } = require(join(__dirname, './package.json')); // https://www.stefanjudis.com/snippets/how-to-import-json-files-in-es-modules-node-js/
+const { name, author } = require(join(dirname(fileURLToPath(import.meta.url)), './package.json'));
 const { say } = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
 
-// Función para mostrar texto con estilo en la consola
 const displayText = (text, options) => {
     const { font, align, gradient } = options;
     say(text, {
-        font: font || 'default',    // Estilo de fuente, usa 'default' si no se especifica
-        align: align || 'left',     // Alineación del texto, usa 'left' si no se especifica
-        gradient: gradient || ['white', 'black'] // Gradiente de colores, usa blanco a negro por defecto
+        font: font || 'default',
+        align: align || 'left',
+        gradient: gradient || ['white', 'black']
     });
 };
 
-// Mostrar el texto '𝑨𝒅𝒎𝒊𝒏\n𝑻𝑲' en la consola con un estilo de fuente y gradiente específico
 displayText('Admin\nBot\nTK', {
-    font: 'chrome',              // Estilo de fuente utilizado ('chrome')
-    align: 'center',             // Alineación del texto en el centro
-    gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
+    font: 'chrome',
+    align: 'center',
+    gradient: ['red', 'magenta']
 });
 
-// Mostrar el texto 'Por 𝑱𝒐𝒂𝒏-𝑻𝑲' en la consola con otro estilo de fuente y gradiente de color
 displayText('Por Joan-TK', {
-    font: 'console',             // Estilo de fuente utilizado ('console')
-    align: 'center',             // Alineación del texto en el centro
-    gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
+    font: 'console',
+    align: 'center',
+    gradient: ['red', 'magenta']
 });
 
 var isRunning = false;
@@ -80,7 +44,7 @@ async function start(file) {
     isRunning = true;
 
     const currentFilePath = new URL(import.meta.url).pathname;
-    let args = [join(__dirname, file), ...process.argv.slice(2)];
+    let args = [join(dirname(currentFilePath), file), ...process.argv.slice(2)];
 
     displayText([process.argv[0], ...args].join(' '), {
         font: 'console',
@@ -88,7 +52,12 @@ async function start(file) {
         gradient: ['red', 'magenta']
     });
 
-    // Utiliza cluster.fork directamente
+    // Configurar el proceso maestro
+    cluster.setupMaster({
+        exec: args[0], // El archivo que se ejecutará en el worker
+        args: args.slice(1) // Argumentos pasados al worker
+    });
+
     let worker = cluster.fork();
 
     worker.on('message', data => {
@@ -160,9 +129,10 @@ async function start(file) {
     let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
     if (!opts['test']) {
         if (!rl.listenerCount()) rl.on('line', line => {
-            p.emit('message', line.trim())
+            worker.send({ type: 'message', data: line.trim() });
         });
     }
 }
 
 start('main.js');
+
