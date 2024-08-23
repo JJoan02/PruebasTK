@@ -410,29 +410,24 @@ global.reloadHandler = async function(restatConn) {
     return true;
 }
 
-const pluginFolder = global.__dirname(path.join(__dirname, './plugins/index'));
-const pluginFilter = (filename) => /\.js$/.test(filename);
-global.plugins = {};
-
-// Inicializa los plugins
-// Importaciones en el archivo principal
-import { readdirSync } from 'fs';
-
 // Define la carpeta de plugins y el filtro (ajusta según tu implementación)
 const pluginFolder = './plugins';
-const pluginFilter = filename => filename.endsWith('.js');
+const pluginFilter = (filename) => filename.endsWith('.js');
 
-// Inicializa los plugins
+// Inicializa los plugins en un objeto global
+global.plugins = {};
+
+// Función para cargar e inicializar los plugins
 async function filesInit() {
     const plugins = {}; // Mantén los plugins en un objeto local para evitar conflictos globales
     for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
         try {
             const file = path.join(pluginFolder, filename);
-            console.log(`Loading file: ${file}`);
+            console.log(`Cargando archivo: ${file}`);
             const module = await import(file);
             plugins[filename] = module.default || module;
         } catch (e) {
-            console.error(`Error loading plugin ${filename}:`, e.message);
+            console.error(`Error al cargar el plugin ${filename}:`, e.message);
             console.error(e.stack);
         }
     }
@@ -441,9 +436,9 @@ async function filesInit() {
 
 // Llama a la función para inicializar los plugins
 filesInit().then(() => {
-    console.log('Plugins loaded successfully:', Object.keys(global.plugins));
+    console.log('Plugins cargados exitosamente:', Object.keys(global.plugins));
 }).catch((err) => {
-    console.error('Error initializing plugins:', err.message);
+    console.error('Error al inicializar plugins:', err.message);
     console.error(err.stack);
 });
 
@@ -453,7 +448,7 @@ global.reload = async (_ev, filename) => {
         const dir = global.__filename(path.join(pluginFolder, filename), true);
         if (filename in global.plugins) {
             if (existsSync(dir)) {
-                conn.logger.info(` SE ACTUALIZADO - '${filename}' CON ÉXITO`);
+                conn.logger.info(` SE ACTUALIZÓ - '${filename}' CON ÉXITO`);
             } else {
                 conn.logger.warn(` SE ELIMINÓ UN ARCHIVO : '${filename}'`);
                 delete global.plugins[filename];
@@ -475,7 +470,8 @@ global.reload = async (_ev, filename) => {
 readdirSync(pluginFolder).filter(pluginFilter).forEach((filename) => {
     fs.watchFile(path.join(pluginFolder, filename), global.reload);
 });
-// Directorios
+
+// Definición de directorios para sesiones y datos de sub-bots
 const adminSessionDir = './AdminSession';
 const subBotsDataDir = './SubBots-Data';
 
@@ -565,7 +561,7 @@ function redefineConsoleMethod(methodName, filterStrings) {
     };
 }
 
-// Función para pruebas rápidas
+// Función para pruebas rápidas de herramientas externas
 async function _quickTest() {
     try {
         const test = await Promise.all([
@@ -590,33 +586,7 @@ async function _quickTest() {
     }
 }
 
-// Manejo de la recarga de plugins
-global.reload = async (_ev, filename) => {
-    if (pluginFilter(filename)) {
-        const dir = global.__filename(join(pluginFolder, filename), true);
-        if (filename in global.plugins) {
-            if (existsSync(dir)) {
-                conn.logger.info(` SE ACTUALIZÓ - '${filename}' CON ÉXITO`);
-            } else {
-                conn.logger.warn(`SE ELIMINÓ UN ARCHIVO : '${filename}'`);
-                delete global.plugins[filename];
-                return;
-            }
-        } else {
-            conn.logger.info(`SE DETECTÓ UN NUEVO PLUGIN : '${filename}'`);
-        }
-        try {
-            const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`));
-            global.plugins[filename] = module.default || module;
-        } catch (e) {
-            conn.logger.error(`HAY UN ERROR AL REQUIRIR EL PLUGIN '${filename}\n${format(e)}'`);
-        } finally {
-            global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)));
-        }
-    }
-};
-
-Object.freeze(global.reload);
+// Observa y maneja la recarga de plugins
 watch(pluginFolder, global.reload);
 await global.reloadHandler();
 
