@@ -1,14 +1,13 @@
 import { join, dirname } from 'path';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
-import * as cluster from 'cluster';  // Importar todo el módulo y luego acceder a las funciones
+import cluster from 'cluster';  // Importar el módulo cluster
 import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
 import yargs from 'yargs';
 import express from 'express';
 import chalk from 'chalk';
-import path from 'path';
 import os from 'os';
 import { promises as fsPromises } from 'fs';
 import { z } from 'zod'; // Importar zod para validar los esquemas
@@ -40,9 +39,6 @@ const BioskopNowSchema = z.object({
 
 // Exportar los esquemas para que estén disponibles en otros módulos si es necesario
 export { BioskopArgsSchema, BioskopSchema, BioskopNowSchema };
-
-// Acceso a las funciones `setupMaster` y `fork` desde `cluster`
-const { setupMaster, fork } = cluster;
 
 // https://stackoverflow.com/a/50052194
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -90,23 +86,23 @@ async function start(file) {
         gradient: ['red', 'magenta']
     });
 
-    setupMaster({ exec: args[0], args: args.slice(1) });
-    let p = fork();
+    // Utiliza cluster.fork directamente
+    let worker = cluster.fork();
 
-    p.on('message', data => {
+    worker.on('message', data => {
         switch (data) {
             case 'reset':
-                p.process.kill();
+                worker.process.kill();
                 isRunning = false;
-                start.apply(this, arguments);
+                start(file);
                 break;
             case 'uptime':
-                p.send(process.uptime());
+                worker.send(process.uptime());
                 break;
         }
     });
 
-    p.on('exit', (_, code) => {
+    worker.on('exit', (_, code) => {
         isRunning = false;
         console.error('⚠️ ERROR ⚠️ >> ', code);
         if (code !== 0) {
@@ -162,9 +158,12 @@ async function start(file) {
     let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
     if (!opts['test']) {
         if (!rl.listenerCount()) rl.on('line', line => {
-            p.emit('message', line.trim());
+            worker.send(line.trim()); // Envía el mensaje al proceso hijo
         });
     }
 }
 
-start('main.js');
+if (cluster.isMaster) {
+    start('main.js');
+} else {
+    // Lógica del proceso hijo
