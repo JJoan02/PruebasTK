@@ -1,7 +1,7 @@
 import { join, dirname } from 'path';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
-import cluster from 'cluster';  // Importar el módulo cluster
+const cluster = require('cluster');  // Usa require en lugar de import
 import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
@@ -162,4 +162,5 @@ p.emit('message', line.trim())
 })}
 
 start('main.js')
+
 
