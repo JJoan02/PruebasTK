@@ -1,17 +1,16 @@
 import { join, dirname } from 'path';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
-import * as cluster from 'cluster';  // Importar todo el módulo y luego acceder a las funciones
+import cluster from 'cluster';
 import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
 import yargs from 'yargs';
 import express from 'express';
 import chalk from 'chalk';
-import path from 'path';
 import os from 'os';
 import { promises as fsPromises } from 'fs';
-import { z } from 'zod'; // Importar zod para validar los esquemas
+import { z } from 'zod';
 
 // Definir los esquemas con zod
 const BioskopArgsSchema = z.object({
@@ -38,41 +37,33 @@ const BioskopNowSchema = z.object({
     playingAt: z.string()
 });
 
-// Exportar los esquemas para que estén disponibles en otros módulos si es necesario
 export { BioskopArgsSchema, BioskopSchema, BioskopNowSchema };
 
-// Acceso a las funciones `setupMaster` y `fork` desde `cluster`
-const { setupMaster, fork } = cluster;
-
-// https://stackoverflow.com/a/50052194
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(__dirname); // Incorpora la capacidad de crear el método 'requerir'
-const { name, author } = require(join(__dirname, './package.json')); // https://www.stefanjudis.com/snippets/how-to-import-json-files-in-es-modules-node-js/
+const require = createRequire(__dirname);
+const { name, author } = require(join(__dirname, './package.json'));
 const { say } = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
 
-// Función para mostrar texto con estilo en la consola
 const displayText = (text, options) => {
     const { font, align, gradient } = options;
     say(text, {
-        font: font || 'default',    // Estilo de fuente, usa 'default' si no se especifica
-        align: align || 'left',     // Alineación del texto, usa 'left' si no se especifica
-        gradient: gradient || ['white', 'black'] // Gradiente de colores, usa blanco a negro por defecto
+        font: font || 'default',
+        align: align || 'left',
+        gradient: gradient || ['white', 'black']
     });
 };
 
-// Mostrar el texto '𝑨𝒅𝒎𝒊𝒏\n𝑻𝑲' en la consola con un estilo de fuente y gradiente específico
 displayText('Admin\nBot\nTK', {
-    font: 'chrome',              // Estilo de fuente utilizado ('chrome')
-    align: 'center',             // Alineación del texto en el centro
-    gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
+    font: 'chrome',
+    align: 'center',
+    gradient: ['red', 'magenta']
 });
 
-// Mostrar el texto 'Por 𝑱𝒐𝒂𝒏-𝑻𝑲' en la consola con otro estilo de fuente y gradiente de color
 displayText('Por Joan-TK', {
-    font: 'console',             // Estilo de fuente utilizado ('console')
-    align: 'center',             // Alineación del texto en el centro
-    gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
+    font: 'console',
+    align: 'center',
+    gradient: ['red', 'magenta']
 });
 
 var isRunning = false;
@@ -90,48 +81,56 @@ async function start(file) {
         gradient: ['red', 'magenta']
     });
 
-    setupMaster({ exec: args[0], args: args.slice(1) });
-    let p = fork();
+    if (cluster.isMaster) {
+        // Configuración del master
+        cluster.setupMaster({
+            exec: args[0],
+            args: args.slice(1)
+        });
 
-    p.on('message', data => {
-        switch (data) {
-            case 'reset':
-                p.process.kill();
-                isRunning = false;
-                start.apply(this, arguments);
-                break;
-            case 'uptime':
-                p.send(process.uptime());
-                break;
-        }
-    });
+        cluster.on('fork', (worker) => {
+            console.log(`Worker ${worker.id} forked`);
+        });
 
-    p.on('exit', (_, code) => {
-        isRunning = false;
-        console.error('⚠️ ERROR ⚠️ >> ', code);
-        if (code !== 0) {
-            console.log('Reiniciando proceso...');
+        cluster.on('exit', (worker, code, signal) => {
+            console.error(`Worker ${worker.id} died with code: ${code}, and signal: ${signal}`);
+            if (code !== 0) {
+                console.log('Reiniciando proceso...');
+                start(file);
+            }
+        });
+
+        let p = cluster.fork();
+
+        p.on('message', data => {
+            switch (data) {
+                case 'reset':
+                    p.process.kill();
+                    isRunning = false;
+                    start(file);
+                    break;
+                case 'uptime':
+                    p.send(process.uptime());
+                    break;
+            }
+        });
+
+        watchFile(args[0], () => {
+            unwatchFile(args[0]);
             start(file);
-        }
-    });
+        });
 
-    // Monitorea cambios en el archivo y reinicia si hay cambios
-    watchFile(args[0], () => {
-        unwatchFile(args[0]);
-        start(file);
-    });
-
-    const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
-    const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
-    const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
-    
-    try {
-        const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
-        const packageJsonObj = JSON.parse(packageJsonData);
-        const currentTime = new Date().toLocaleString();
+        const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
+        const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
+        const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
         
-        let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
-        console.log(chalk.yellow(`╭${lineM}
+        try {
+            const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
+            const packageJsonObj = JSON.parse(packageJsonData);
+            const currentTime = new Date().toLocaleString();
+            
+            let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
+            console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`🖥️ ${os.type()}, ${os.release()} - ${os.arch()}`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💾 Total RAM: ${ramInGB.toFixed(2)} GB`)}
