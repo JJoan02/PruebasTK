@@ -10,12 +10,13 @@ import os from 'os';
 import { promises as fsPromises } from 'fs';
 import cluster from 'cluster';
 
-// Importar cluster usando createRequire
+// Crear un require para cargar package.json
 const require = createRequire(import.meta.url);
 const { name, author } = require(join(dirname(fileURLToPath(import.meta.url)), './package.json'));
 const { say } = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
 
+// Función para mostrar texto con estilos personalizados
 const displayText = (text, options) => {
     const { font, align, gradient } = options;
     say(text, {
@@ -25,6 +26,7 @@ const displayText = (text, options) => {
     });
 };
 
+// Mostrar información inicial
 displayText('Admin\nBot\nTK', {
     font: 'chrome',
     align: 'center',
@@ -37,14 +39,15 @@ displayText('Por Joan-TK', {
     gradient: ['red', 'magenta']
 });
 
-var isRunning = false;
+let isRunning = false;
 
+// Función para iniciar el proceso principal
 async function start(file) {
     if (isRunning) return;
     isRunning = true;
 
     const currentFilePath = new URL(import.meta.url).pathname;
-    let args = [join(dirname(currentFilePath), file), ...process.argv.slice(2)];
+    const args = [join(dirname(currentFilePath), file), ...process.argv.slice(2)];
 
     displayText([process.argv[0], ...args].join(' '), {
         font: 'console',
@@ -54,11 +57,11 @@ async function start(file) {
 
     // Configurar el proceso maestro
     cluster.setupMaster({
-        exec: args[0], // El archivo que se ejecutará en el worker
-        args: args.slice(1) // Argumentos pasados al worker
+        exec: args[0],
+        args: args.slice(1)
     });
 
-    let worker = cluster.fork();
+    const worker = cluster.fork();
 
     worker.on('message', data => {
         switch (data) {
@@ -70,6 +73,8 @@ async function start(file) {
             case 'uptime':
                 worker.send(process.uptime());
                 break;
+            default:
+                console.warn('Mensaje desconocido:', data);
         }
     });
 
@@ -82,7 +87,7 @@ async function start(file) {
         }
     });
 
-    // Monitorea cambios en el archivo y reinicia si hay cambios
+    // Monitorear cambios en el archivo y reiniciar si hay cambios
     watchFile(args[0], () => {
         unwatchFile(args[0]);
         start(file);
@@ -97,7 +102,7 @@ async function start(file) {
         const packageJsonObj = JSON.parse(packageJsonData);
         const currentTime = new Date().toLocaleString();
         
-        let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
+        const lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
         console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`🖥️ ${os.type()}, ${os.release()} - ${os.arch()}`)}
@@ -121,12 +126,12 @@ async function start(file) {
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
-        setInterval(() => {}, 1000);
+        // Eliminado el intervalo vacío
     } catch (err) {
         console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
     }
 
-    let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
+    let opts = yargs(process.argv.slice(2)).exitProcess(false).parse();
     if (!opts['test']) {
         if (!rl.listenerCount()) rl.on('line', line => {
             worker.send({ type: 'message', data: line.trim() });
