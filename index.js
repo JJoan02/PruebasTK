@@ -167,3 +167,17 @@ if (cluster.isMaster) {
     start('main.js');
 } else {
     // Lógica del proceso hijo
+    console.log('Proceso hijo en ejecución');
+    process.on('message', msg => {
+        if (msg === 'reset') {
+            console.log('Reiniciando proceso hijo');
+            process.exit(0); // Termina el proceso hijo
+        } else if (msg === 'uptime') {
+            process.send(process.uptime()); // Envía el tiempo de actividad al proceso maestro
+        } else {
+            console.log(`Mensaje del maestro: ${msg}`);
+        }
+    });
+
+    // Puedes agregar aquí más lógica para el proceso hijo
+}
