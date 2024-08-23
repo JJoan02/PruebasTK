@@ -1,7 +1,7 @@
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import * as cluster from 'cluster';
-import { watchFile, unwatchFile } from 'fs';
+import { promises as fs } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
 import yargs from 'yargs';
@@ -13,6 +13,7 @@ const { name, author } = packageJson;
 
 const rl = createInterface(process.stdin, process.stdout);
 
+// Función para mostrar texto estilizado en la consola
 const displayText = (text, options) => {
     const { font, align, gradient } = options;
     cfonts.say(text, {
@@ -22,26 +23,35 @@ const displayText = (text, options) => {
     });
 };
 
-displayText('Admin\nBot\nTK', {
-    font: 'chrome',
-    align: 'center',
-    gradient: ['red', 'magenta']
-});
+// Función para imprimir el encabezado
+const printHeader = () => {
+    displayText('Admin\nBot\nTK', {
+        font: 'chrome',
+        align: 'center',
+        gradient: ['red', 'magenta']
+    });
 
-displayText('Por Joan-TK', {
-    font: 'console',
-    align: 'center',
-    gradient: ['red', 'magenta']
-});
+    displayText('Por Joan-TK', {
+        font: 'console',
+        align: 'center',
+        gradient: ['red', 'magenta']
+    });
+};
 
-var isRunning = false;
+// Imprime el encabezado inicial
+printHeader();
 
+let isRunning = false;
+const maxRestartAttempts = 5; // Límite de reinicios
+let restartAttempts = 0;
+
+// Función para iniciar el proceso principal
 async function start(file) {
     if (isRunning) return;
     isRunning = true;
 
     const currentFilePath = fileURLToPath(import.meta.url);
-    let args = [join(dirname(currentFilePath), file), ...process.argv.slice(2)];
+    const args = [join(dirname(currentFilePath), file), ...process.argv.slice(2)];
 
     displayText([process.argv[0], ...args].join(' '), {
         font: 'console',
@@ -56,32 +66,44 @@ async function start(file) {
 
         cluster.on('exit', (worker, code, signal) => {
             console.error(`Worker ${worker.id} died with code: ${code}, and signal: ${signal}`);
-            if (code !== 0) {
-                console.log('Reiniciando proceso...');
+            if (code !== 0 && restartAttempts < maxRestartAttempts) {
+                restartAttempts++;
+                console.log(`Reiniciando proceso (${restartAttempts}/${maxRestartAttempts})...`);
                 start(file);
+            } else if (restartAttempts >= maxRestartAttempts) {
+                console.error('Número máximo de reinicios alcanzado. No se reiniciará el proceso.');
             }
         });
 
-        let p = cluster.fork();
+        const worker = cluster.fork();
 
-        p.on('message', data => {
+        worker.on('message', (data) => {
             switch (data) {
                 case 'reset':
-                    p.process.kill();
+                    worker.process.kill();
                     isRunning = false;
                     start(file);
                     break;
                 case 'uptime':
-                    p.send(process.uptime());
+                    worker.send(process.uptime());
                     break;
             }
         });
 
-        watchFile(args[0], () => {
-            unwatchFile(args[0]);
-            start(file);
-        });
+        try {
+            const watcher = fs.watch(args[0], () => {
+                watcher.close();
+                start(file);
+            });
 
+            watcher.on('error', (err) => {
+                console.error(chalk.red(`❌ Error al monitorear el archivo: ${err}`));
+            });
+        } catch (err) {
+            console.error(chalk.red(`❌ Error al iniciar el monitoreo del archivo: ${err}`));
+        }
+
+        // Información del sistema
         const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
         const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
         const currentTime = new Date().toLocaleString();
@@ -118,6 +140,7 @@ async function start(file) {
         console.log('Worker process started.');
     }
 
+    // Configuración de argumentos de línea de comando
     const opts = yargs(process.argv.slice(2)).exitProcess(false).parse();
     if (!opts['test']) {
         if (rl.listenerCount('line') === 0) {
@@ -128,4 +151,5 @@ async function start(file) {
     }
 }
 
+// Inicia el proceso con el archivo principal
 start('main.js');
