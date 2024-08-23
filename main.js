@@ -15,7 +15,7 @@ import chalk from 'chalk';
 import syntaxerror from 'syntax-error';
 import { tmpdir } from 'os';
 import { format } from 'util';
-import pino from 'pino';  // Solo una importación
+import pino from 'pino';
 import { Boom } from '@hapi/boom';
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
 import { Low, JSONFile } from 'lowdb';
@@ -37,9 +37,11 @@ serialize();
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
   return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
 };
+
 global.__dirname = function dirname(pathURL) {
   return path.dirname(global.__filename(pathURL, true));
 };
+
 global.__require = function require(dir = import.meta.url) {
   return createRequire(dir);
 };
@@ -120,11 +122,11 @@ loadChatgptDB();
 global.creds = 'creds.json';
 global.authFile = 'AdminSession';
 global.authFileJB = 'SubBots-Data';
-global.rutaBot = join(__dirname, authFile);
-global.rutaJadiBot = join(__dirname, authFileJB);
+global.rutaBot = join(__dirname, global.authFile);
+global.rutaJadiBot = join(__dirname, global.authFileJB);
 
-if (!fs.existsSync(rutaJadiBot)) {
-  fs.mkdirSync(rutaJadiBot);
+if (!fs.existsSync(global.rutaJadiBot)) {
+  fs.mkdirSync(global.rutaJadiBot);
 }
 
 // Autenticación con múltiples archivos
@@ -159,7 +161,7 @@ let opcion;
 if (methodCodeQR) {
   opcion = '1';
 }
-if (!methodCodeQR && !methodCode && !fs.existsSync(`./${authFile}/creds.json`)) {
+if (!methodCodeQR && !methodCode && !fs.existsSync(`./${global.authFile}/creds.json`)) {
   do {
     let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
     opcion = await question(`╭${lineM}  
@@ -415,30 +417,29 @@ const pluginFilter = (filename) => filename.endsWith('.js');
 
 // Inicializa los plugins en un objeto global
 global.plugins = {};
+const pluginFolder = path.join(__dirname, 'plugins');
 
-// Función para cargar e inicializar los plugins
 async function filesInit() {
-    const plugins = {}; // Mantén los plugins en un objeto local para evitar conflictos globales
-    for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
-        try {
-            const file = path.join(pluginFolder, filename);
-            console.log(`Cargando archivo: ${file}`);
-            const module = await import(file);
-            plugins[filename] = module.default || module;
-        } catch (e) {
-            console.error(`Error al cargar el plugin ${filename}:`, e.message);
-            console.error(e.stack);
-        }
+  const plugins = {};
+  for (const filename of readdirSync(pluginFolder).filter(file => file.endsWith('.js'))) {
+    try {
+      const file = path.join(pluginFolder, filename);
+      console.log(`Cargando archivo: ${file}`);
+      const module = await import(file);
+      plugins[filename] = module.default || module;
+    } catch (e) {
+      console.error(`Error al cargar el plugin ${filename}:`, e.message);
+      console.error(e.stack);
     }
-    global.plugins = plugins; // Asigna los plugins cargados a la variable global
+  }
+  global.plugins = plugins;
 }
 
-// Llama a la función para inicializar los plugins
 filesInit().then(() => {
-    console.log('Plugins cargados exitosamente:', Object.keys(global.plugins));
+  console.log('Plugins cargados exitosamente:', Object.keys(global.plugins));
 }).catch((err) => {
-    console.error('Error al inicializar plugins:', err.message);
-    console.error(err.stack);
+  console.error('Error al inicializar plugins:', err.message);
+  console.error(err.stack);
 });
 
 // Maneja la actualización y carga de nuevos plugins
