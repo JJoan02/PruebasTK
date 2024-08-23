@@ -1,7 +1,6 @@
 import { join, dirname } from 'path';
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'url';
-const cluster = require('cluster');  // Usa require en lugar de import
 import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
@@ -11,6 +10,10 @@ import chalk from 'chalk';
 import os from 'os';
 import { promises as fsPromises } from 'fs';
 import { z } from 'zod'; // Importar zod para validar los esquemas
+
+// Importar cluster usando createRequire
+const require = createRequire(import.meta.url);
+const cluster = require('cluster');
 
 // Definir los esquemas con zod
 const BioskopArgsSchema = z.object({
@@ -42,7 +45,6 @@ export { BioskopArgsSchema, BioskopSchema, BioskopNowSchema };
 
 // https://stackoverflow.com/a/50052194
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(__dirname); // Incorpora la capacidad de crear el método 'requerir'
 const { name, author } = require(join(__dirname, './package.json')); // https://www.stefanjudis.com/snippets/how-to-import-json-files-in-es-modules-node-js/
 const { say } = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
@@ -150,17 +152,17 @@ async function start(file) {
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
-setInterval(() => {}, 1000);
-} catch (err) {
-console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+        setInterval(() => {}, 1000);
+    } catch (err) {
+        console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+    }
+
+    let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
+    if (!opts['test']) {
+        if (!rl.listenerCount()) rl.on('line', line => {
+            p.emit('message', line.trim())
+        });
+    }
 }
 
-let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
-if (!opts['test'])
-if (!rl.listenerCount()) rl.on('line', line => {
-p.emit('message', line.trim())
-})}
-
-start('main.js')
-
-
+start('main.js');
