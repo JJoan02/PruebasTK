@@ -18,7 +18,7 @@ const requestOptions = {
 // Función para obtener películas en cartelera
 export async function bioskopNow() {
     const url = 'https://jadwalnonton.com/now-playing/';
-
+    
     try {
         const response = await got(url, requestOptions).text();
         const $ = cheerio.load(response);
@@ -94,6 +94,8 @@ export const handler = async (m, { conn, command, args, text, usedPrefix }) => {
 
     try {
         const yt_play = await search(args.join(" "));
+        if (yt_play.length === 0) throw 'No se encontraron resultados para la búsqueda.';
+
         let additionalText = command === 'play' ? '𝘼𝙐𝘿𝙄𝙊 🔊' : '𝙑𝙄𝘿𝙀𝙊 🎥';
         let captionvid = `𓆩 𓃠 𓆪 ✧═══ ${vs} ═══✧ 𓆩 𓃠 𓆪*
 
@@ -149,7 +151,6 @@ async function handleAudio(m, yt_play, conn) {
         const yt = await youtubedl(v).catch(async _ => await youtubedlv2(v));
         const dl_url = await yt.audio[q].download();
         const ttl = await yt.title;
-        const size = await yt.audio[q].fileSizeH;
 
         await conn.sendMessage(m.chat, {
             audio: { url: dl_url },
@@ -166,6 +167,7 @@ async function handleAudio(m, yt_play, conn) {
             }
         }, { quoted: m });
     } catch (error) {
+        console.error(`Error in handleAudio: ${error.message}`);
         await handleAudioFallback(m, yt_play, conn, error);
     }
 }
@@ -177,7 +179,6 @@ async function handleAudioFallback(m, yt_play, conn, error) {
         let v = yt_play[0].url;
         let dl_url = (await ytdl.getInfo(v)).formats.find(f => f.itag === 140)?.url;
         const ttl = yt_play[0].title;
-        const size = "Unknown";
 
         await conn.sendMessage(m.chat, {
             audio: { url: dl_url },
@@ -233,3 +234,4 @@ async function search(query) {
         });
     });
 }
+
