@@ -398,7 +398,6 @@ global.plugins = {};
 // Inicializa los plugins
 // Importaciones en el archivo principal
 import { readdirSync } from 'fs';
-import path from 'path';
 
 // Define la carpeta de plugins y el filtro (ajusta según tu implementación)
 const pluginFolder = './plugins';
