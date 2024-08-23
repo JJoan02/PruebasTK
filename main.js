@@ -208,7 +208,7 @@ mobile: MethodMobile,
 browser: opcion == '1' ? ['Admin-TK', 'Edge', '2.0.0'] : methodCodeQR ? ['Admin-TK', 'Edge', '2.0.0'] : ["Ubuntu", "Chrome", "20.0.04"],
 auth: {
 creds: state.creds,
-keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
+keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
 },
 markOnlineOnConnect: true, 
 generateHighQualityLinkPreview: true, 
