@@ -86,48 +86,49 @@ async function start(file) {
         gradient: ['red', 'magenta']
     });
 
-    // Utiliza cluster.fork directamente
-    let worker = cluster.fork();
+    // Verifica si cluster está disponible
+    if (cluster.isMaster) {
+        let worker = cluster.fork();
 
-    worker.on('message', data => {
-        switch (data) {
-            case 'reset':
-                worker.process.kill();
-                isRunning = false;
+        worker.on('message', data => {
+            switch (data) {
+                case 'reset':
+                    worker.process.kill();
+                    isRunning = false;
+                    start(file);
+                    break;
+                case 'uptime':
+                    worker.send(process.uptime());
+                    break;
+            }
+        });
+
+        worker.on('exit', (_, code) => {
+            isRunning = false;
+            console.error('⚠️ ERROR ⚠️ >> ', code);
+            if (code !== 0) {
+                console.log('Reiniciando proceso...');
                 start(file);
-                break;
-            case 'uptime':
-                worker.send(process.uptime());
-                break;
-        }
-    });
+            }
+        });
 
-    worker.on('exit', (_, code) => {
-        isRunning = false;
-        console.error('⚠️ ERROR ⚠️ >> ', code);
-        if (code !== 0) {
-            console.log('Reiniciando proceso...');
+        // Monitorea cambios en el archivo y reinicia si hay cambios
+        watchFile(args[0], () => {
+            unwatchFile(args[0]);
             start(file);
-        }
-    });
+        });
 
-    // Monitorea cambios en el archivo y reinicia si hay cambios
-    watchFile(args[0], () => {
-        unwatchFile(args[0]);
-        start(file);
-    });
-
-    const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
-    const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
-    const packageJsonPath = join(dirname(currentFilePath), './package.json');
-    
-    try {
-        const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
-        const packageJsonObj = JSON.parse(packageJsonData);
-        const currentTime = new Date().toLocaleString();
+        const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
+        const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
+        const packageJsonPath = join(dirname(currentFilePath), './package.json');
         
-        let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
-        console.log(chalk.yellow(`╭${lineM}
+        try {
+            const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
+            const packageJsonObj = JSON.parse(packageJsonData);
+            const currentTime = new Date().toLocaleString();
+            
+            let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
+            console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`🖥️ ${os.type()}, ${os.release()} - ${os.arch()}`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💾 Total RAM: ${ramInGB.toFixed(2)} GB`)}
@@ -150,15 +151,20 @@ async function start(file) {
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
-setInterval(() => {}, 1000);
-} catch (err) {
-console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+            setInterval(() => {}, 1000);
+        } catch (err) {
+            console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+        }
+    } else {
+        console.log('No estás en el proceso principal del cluster.');
+    }
+
+    let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
+    if (!opts['test'])
+        if (!rl.listenerCount()) rl.on('line', line => {
+            p.emit('message', line.trim())
+        });
 }
 
-let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
-if (!opts['test'])
-if (!rl.listenerCount()) rl.on('line', line => {
-p.emit('message', line.trim())
-})}
+start('main.js');
 
-start('main.js')
