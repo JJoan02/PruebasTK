@@ -1,87 +1,119 @@
-import fetch from 'node-fetch';
-import yts from 'yt-search';
-import ytdl from 'ytdl-core';
-import axios from 'axios';
-import fs from 'fs';
+// Importaciones (usa 'require' para CommonJS)
+const cluster = require('cluster');
+const { fork } = require('child_process');
+const path = require('path');
+const fsPromises = require('fs').promises;
+const os = require('os');
+const { watchFile, unwatchFile } = require('fs');
+const { join } = require('path');
 
-// Helper function to handle errors
+// Definición de variables
+let isRunning = false;
+
+// Función para iniciar el proceso
+async function start(file) {
+    if (isRunning) return;
+    isRunning = true;
+
+    const currentFilePath = new URL(import.meta.url).pathname;
+    let args = [join(__dirname, file), ...process.argv.slice(2)];
+
+    displayText([process.argv[0], ...args].join(' '), {
+        font: 'console',
+        align: 'center',
+        gradient: ['red', 'magenta']
+    });
+
+    if (cluster.isMaster) {
+        cluster.setupMaster({
+            exec: args[0],
+            args: args.slice(1)
+        });
+
+        let p = cluster.fork();
+
+        p.on('message', data => {
+            if (data === 'reset') {
+                p.process.kill();
+                isRunning = false;
+                start(file);
+            } else if (data === 'uptime') {
+                p.send(process.uptime());
+            }
+        });
+
+        p.on('exit', (_, code) => {
+            isRunning = false;
+            console.error('⚠️ ERROR ⚠️ >> ', code);
+            if (code !== 0) {
+                console.log('Reiniciando proceso...');
+                start(file);
+            }
+        });
+
+        watchFile(args[0], () => {
+            unwatchFile(args[0]);
+            start(file);
+        });
+
+        const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
+        const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
+        const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
+
+        try {
+            const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
+            const packageJsonObj = JSON.parse(packageJsonData);
+            const currentTime = new Date().toLocaleString();
+            // Agrega lógica adicional aquí si es necesario
+        } catch (error) {
+            console.error('Error al leer package.json:', error);
+        }
+    }
+}
+
+// Funciones adicionales y manejo de errores
 const handleError = async (conn, m, command, usedPrefix, error) => {
-    await conn.reply(m.chat, `${lenguajeGB['smsMalError3']()}#report ${lenguajeGB['smsMensError2']()} ${usedPrefix + command}\n\n${wm}`, m);
-    console.error(`❗❗ ${lenguajeGB['smsMensError2']()} ${usedPrefix + command} ❗❗`);
-    console.error(error);
+    await conn.reply(m.chat, `Error en el comando ${usedPrefix + command}\n\n${error}`, m);
+    console.error(`Error en el comando ${usedPrefix + command}:`, error);
 };
 
-// Function to get a URL for the audio
+// Funciones para obtener URLs de audio y video
 const fetchAudioUrl = async (text) => {
     const res = await fetch(`https://violetics.pw/api/media/youtube-play?apikey=beta&query=${text}`);
     const json = await res.json();
     return json.result.url;
 };
 
-// Function to get a URL for the video
 const fetchVideoUrl = async (text) => {
     const res = await fetch(`https://violetics.pw/api/media/youtube-play?apikey=beta&query=${text}`);
     const json = await res.json();
     return json.result.url;
 };
 
-// Function to handle audio and video commands
+// Función principal para manejar solicitudes de medios
 const handleMediaRequest = async (m, command, conn, text, usedPrefix) => {
     try {
         if (command === 'play.1') {
-            await conn.reply(m.chat, lenguajeGB['smsAvisoEG']() + mid.smsAud, m, {
-                contextInfo: {
-                    externalAdReply: {
-                        mediaUrl: null,
-                        mediaType: 1,
-                        description: null,
-                        title: wm,
-                        body: '𝗦𝘂𝗽𝗲𝗿 𝗝𝗼𝗮𝗻𝗕𝗼𝘁-𝗧𝗞 - 𝗪𝗵𝗮𝘁𝘀𝗔𝗽𝗽',
-                        previewType: 0,
-                        thumbnail: joanImg,
-                        sourceUrl: accountsgb
-                    }
-                }
-            });
-            try {
-                const audioUrl = await fetchAudioUrl(text);
-                await conn.sendMessage(m.chat, {
-                    audio: { url: audioUrl },
-                    fileName: 'error.mp3',
-                    mimetype: 'audio/mp4'
-                }, { quoted: m });
-            } catch (error) {
-                await handleError(conn, m, command, usedPrefix, error);
-            }
+            await conn.reply(m.chat, 'Descargando audio...', m);
+            const audioUrl = await fetchAudioUrl(text);
+            await conn.sendMessage(m.chat, {
+                audio: { url: audioUrl },
+                fileName: 'audio.mp3',
+                mimetype: 'audio/mp4'
+            }, { quoted: m });
         } else if (command === 'play.2') {
-            await conn.reply(m.chat, lenguajeGB['smsAvisoEG']() + mid.smsVid, m, {
-                contextInfo: {
-                    externalAdReply: {
-                        mediaUrl: null,
-                        mediaType: 1,
-                        description: null,
-                        title: wm,
-                        body: '𝗦𝘂𝗽𝗲𝗿 𝗝𝗼𝗮𝗻𝗕𝗼𝘁-𝗧𝗞 - 𝗪𝗵𝗮𝘁𝘀𝗔𝗽𝗽',
-                        previewType: 0,
-                        thumbnail: joanImg,
-                        sourceUrl: accountsgb
-                    }
-                }
-            });
-            try {
-                const videoUrl = await fetchVideoUrl(text);
-                await conn.sendFile(m.chat, videoUrl, 'error.mp4', `${wm}`, m);
-            } catch (error) {
-                await handleError(conn, m, command, usedPrefix, error);
-            }
+            await conn.reply(m.chat, 'Descargando video...', m);
+            const videoUrl = await fetchVideoUrl(text);
+            await conn.sendFile(m.chat, videoUrl, 'video.mp4', 'Video descargado', m);
         }
     } catch (error) {
         await handleError(conn, m, command, usedPrefix, error);
     }
 };
 
+// Manejador de comandos
 const handler = async (m, { command, usedPrefix, conn, text }) => {
-    if (!text) throw `${mg}${mid.smsMalused4}\n*${usedPrefix + command} Billie Eilish - Bellyache*`;
+    if (!text) throw `Por favor, proporciona un texto para el comando. Ejemplo: ${usedPrefix + command} Billie Eilish - Bellyache`;
 
     await handleMediaRequest(m, command, conn, text, usedPrefix);
 };
@@ -91,75 +123,5 @@ handler.tags = ['downloader'];
 handler.command = ['play.1', 'play.2'];
 handler.limit = 1;
 
-export default handler;
+module.exports = handler;
 
-function bytesToSize(bytes) {
-    return new Promise((resolve) => {
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-        if (bytes === 0) return resolve('n/a');
-        const i = Math.floor(Math.log(bytes) / Math.log(1024));
-        resolve(`${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`);
-    });
-}
-
-async function ytMp3(url) {
-    return new Promise((resolve, reject) => {
-        ytdl.getInfo(url).then(async (getUrl) => {
-            const result = getUrl.formats
-                .filter(item => item.mimeType === 'audio/webm; codecs="opus"')
-                .map(async (item) => {
-                    const bytes = await bytesToSize(item.contentLength);
-                    return { audio: item.url, size: bytes };
-                });
-            const resultFix = (await Promise.all(result)).filter(x => x.audio && x.size);
-            const tiny = await axios.get(`https://tinyurl.com/api-create.php?url=${resultFix[0].audio}`);
-            const tinyUrl = tiny.data;
-            const title = getUrl.videoDetails.title;
-            const thumb = getUrl.player_response.microformat.playerMicroformatRenderer.thumbnail.thumbnails[0].url;
-            resolve({ title, result: tinyUrl, result2: resultFix, thumb });
-        }).catch(reject);
-    });
-}
-
-async function ytMp4(url) {
-    return new Promise((resolve, reject) => {
-        ytdl.getInfo(url).then(async (getUrl) => {
-            const result = getUrl.formats
-                .filter(item => item.container === 'mp4' && item.hasVideo && item.hasAudio)
-                .map(async (item) => {
-                    const bytes = await bytesToSize(item.contentLength);
-                    return { video: item.url, quality: item.qualityLabel, size: bytes };
-                });
-            const resultFix = (await Promise.all(result)).filter(x => x.video && x.size && x.quality);
-            const tiny = await axios.get(`https://tinyurl.com/api-create.php?url=${resultFix[0].video}`);
-            const tinyUrl = tiny.data;
-            const title = getUrl.videoDetails.title;
-            const thumb = getUrl.player_response.microformat.playerMicroformatRenderer.thumbnail.thumbnails[0].url;
-            resolve({ title, result: tinyUrl, rersult2: resultFix[0].video, thumb });
-        }).catch(reject);
-    });
-}
-
-async function ytPlay(query) {
-    return new Promise((resolve, reject) => {
-        yts(query).then(async (getData) => {
-            const result = getData.videos.slice(0, 5);
-            const url = result.map(video => video.url);
-            const random = url[0];
-            const getAudio = await ytMp3(random);
-            resolve(getAudio);
-        }).catch(reject);
-    });
-}
-
-async function ytPlayVid(query) {
-    return new Promise((resolve, reject) => {
-        yts(query).then(async (getData) => {
-            const result = getData.videos.slice(0, 5);
-            const url = result.map(video => video.url);
-            const random = url[0];
-            const getVideo = await ytMp4(random);
-            resolve(getVideo);
-        }).catch(reject);
-    });
-}
