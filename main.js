@@ -1,11 +1,13 @@
 import './config.js';
 import './plugins/_content.js';
+
+// Módulos de Node.js
 import { createRequire } from 'module';
 import path, { join } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { platform } from 'process';
 import * as ws from 'ws';
-import fs, { watchFile, unwatchFile, writeFileSync, statSync, unlinkSync, existsSync, readFileSync, copyFileSync, watch, rmSync, readdir, stat, mkdirSync, rename, writeFile } from 'fs';
+import fs, { watchFile, unwatchFile, writeFileSync, statSync, unlinkSync, existsSync, readFileSync, copyFileSync, watch, rmSync, readdirSync, statSync, mkdirSync, renameSync, writeFileSync } from 'fs';
 import yargs from 'yargs';
 import { spawn } from 'child_process';
 import lodash from 'lodash';
@@ -15,7 +17,6 @@ import { tmpdir } from 'os';
 import { format } from 'util';
 import P from 'pino';
 import pino from 'pino';
-import Pino from 'pino';
 import { Boom } from '@hapi/boom';
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
 import { Low, JSONFile } from 'lowdb';
@@ -23,12 +24,17 @@ import { mongoDB, mongoDBV2 } from './lib/mongoDB.js';
 import store from './lib/store.js';
 import readline from 'readline';
 import NodeCache from 'node-cache';
+
 const { makeInMemoryStore, DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, PHONENUMBER_MCC } = await import('@whiskeysockets/baileys');
 const { CONNECTING } = ws;
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
+
+// Inicialización de prototipos y serialización de datos para el socket de WhatsApp
 protoType();
 serialize();
+
+// Funciones globales para manejo de rutas y requerimientos
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
   return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
 };
@@ -38,13 +44,22 @@ global.__dirname = function dirname(pathURL) {
 global.__require = function require(dir = import.meta.url) {
   return createRequire(dir);
 };
-global.API = (name, path = '/', query = {}, apikeyqueryname) => (name in global.APIs ? global.APIs[name] : name) + path + (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({ ...query, ...(apikeyqueryname ? { [apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name] } : {}) })) : '');
+
+// Configuración global de API
+global.API = (name, path = '/', query = {}, apikeyqueryname) => 
+  (name in global.APIs ? global.APIs[name] : name) + path + 
+  (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({ ...query, ...(apikeyqueryname ? { [apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name] } : {}) })) : '');
+
+// Inicialización de la base de datos con LowDB
 global.timestamp = { start: new Date };
 const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[' + (opts['prefix'] || '*/i!#$%+£¢€¥^°=¶∆×÷π√✓©®&.\\-.@').replace(/[|\\{}()[\]^$+*.\-\^]/g, '\\$&') + ']');
+
+// Inicialización de la base de datos principal
 global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(opts['db']) : new JSONFile(`${opts._[0] ? opts._[0] + '_' : ''}database.json`));
 global.DATABASE = global.db;
+
 global.loadDatabase = async function loadDatabase() {
   if (global.db.READ) {
     return new Promise((resolve) => setInterval(async function () {
@@ -78,8 +93,7 @@ if (global.conns instanceof Array) {
   global.conns = [];
 }
 
-/* ------------------------------------------------*/
-
+// Carga y manejo de base de datos de ChatGPT
 global.chatgpt = new Low(new JSONFile(path.join(__dirname, '/db/chatgpt.json')));
 global.loadChatgptDB = async function loadChatgptDB() {
   if (global.chatgpt.READ) {
@@ -103,6 +117,7 @@ global.loadChatgptDB = async function loadChatgptDB() {
 };
 loadChatgptDB();
 
+// Configuración de autenticación y directorios de credenciales
 global.creds = 'creds.json';
 global.authFile = 'AdminSession';
 global.authFileJB = 'SubBots-Data';
@@ -113,10 +128,13 @@ if (!fs.existsSync(rutaJadiBot)) {
   fs.mkdirSync(rutaJadiBot);
 }
 
+// Autenticación con múltiples archivos
 const { state, saveState, saveCreds } = await useMultiFileAuthState(global.authFile);
-const msgRetryCounterMap = (MessageRetryMap) => { }
+const msgRetryCounterMap = (MessageRetryMap) => { };
 const msgRetryCounterCache = new NodeCache();
 const { version } = await fetchLatestBaileysVersion();
+
+// Configuración de lectura y terminal
 let phoneNumber = global.botNumberCode;
 const methodCodeQR = process.argv.includes("qr");
 const methodCode = !!phoneNumber || process.argv.includes("code");
@@ -135,8 +153,9 @@ const question = (texto) => {
       resolver(respuesta.trim());
     });
   });
-}
+};
 
+// Selección de método de autenticación
 let opcion;
 if (methodCodeQR) {
   opcion = '1';
