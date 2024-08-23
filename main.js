@@ -412,16 +412,15 @@ global.reloadHandler = async function(restatConn) {
 }
 
 // Define la carpeta de plugins y el filtro (ajusta según tu implementación)
-const pluginFolder = './plugins';
+const pluginFolder = path.join(__dirname, 'plugins');  // Usa path.join para asegurar la correcta resolución de la ruta
 const pluginFilter = (filename) => filename.endsWith('.js');
 
 // Inicializa los plugins en un objeto global
 global.plugins = {};
-const pluginFolder = path.join(__dirname, 'plugins');
 
 async function filesInit() {
   const plugins = {};
-  for (const filename of readdirSync(pluginFolder).filter(file => file.endsWith('.js'))) {
+  for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
     try {
       const file = path.join(pluginFolder, filename);
       console.log(`Cargando archivo: ${file}`);
@@ -445,21 +444,21 @@ filesInit().then(() => {
 // Maneja la actualización y carga de nuevos plugins
 global.reload = async (_ev, filename) => {
     if (pluginFilter(filename)) {
-        const dir = global.__filename(path.join(pluginFolder, filename), true);
+        const dir = path.join(pluginFolder, filename);
         if (filename in global.plugins) {
             if (existsSync(dir)) {
-                conn.logger.info(` SE ACTUALIZÓ - '${filename}' CON ÉXITO`);
+                console.info(` SE ACTUALIZÓ - '${filename}' CON ÉXITO`);
             } else {
-                conn.logger.warn(` SE ELIMINÓ UN ARCHIVO : '${filename}'`);
+                console.warn(` SE ELIMINÓ UN ARCHIVO : '${filename}'`);
                 delete global.plugins[filename];
             }
         } else if (existsSync(dir)) {
-            conn.logger.info(` SE DETECTÓ UN NUEVO PLUGIN : '${filename}'`);
+            console.info(` SE DETECTÓ UN NUEVO PLUGIN : '${filename}'`);
             try {
                 const module = await import(dir);
                 global.plugins[filename] = module.default || module;
             } catch (e) {
-                conn.logger.error(e);
+                console.error(e);
                 delete global.plugins[filename];
             }
         }
@@ -468,7 +467,7 @@ global.reload = async (_ev, filename) => {
 
 // Observa los cambios en los archivos de plugins
 readdirSync(pluginFolder).filter(pluginFilter).forEach((filename) => {
-    fs.watchFile(path.join(pluginFolder, filename), global.reload);
+    watchFile(path.join(pluginFolder, filename), global.reload);
 });
 
 // Definición de directorios para sesiones y datos de sub-bots
