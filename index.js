@@ -1,57 +1,79 @@
 import { join, dirname } from 'path';
+import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import * as cluster from 'cluster';
-import { promises as fs } from 'fs';
+import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
 import yargs from 'yargs';
 import chalk from 'chalk';
+import path from 'path';
 import os from 'os';
-import packageJson from './package.json' assert { type: 'json' };
+import { promises as fsPromises } from 'fs';
+import { z } from 'zod';
 
-const { name, author } = packageJson;
+// Definir los esquemas con zod
+const BioskopArgsSchema = z.object({
+    page: z.number().min(1).max(4)
+});
 
+const BioskopSchema = z.object({
+    title: z.string(),
+    img: z.string(),
+    url: z.string(),
+    genre: z.string(),
+    duration: z.string(),
+    release: z.string(),
+    director: z.string(),
+    cast: z.string()
+});
+
+const BioskopNowSchema = z.object({
+    title: z.string(),
+    img: z.string(),
+    url: z.string(),
+    genre: z.string(),
+    duration: z.string(),
+    playingAt: z.string()
+});
+
+export { BioskopArgsSchema, BioskopSchema, BioskopNowSchema };
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(__dirname);
+const { name, author } = require(join(__dirname, './package.json'));
+const { say } = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
 
-// Función para mostrar texto estilizado en la consola
 const displayText = (text, options) => {
     const { font, align, gradient } = options;
-    cfonts.say(text, {
+    say(text, {
         font: font || 'default',
         align: align || 'left',
         gradient: gradient || ['white', 'black']
     });
 };
 
-// Función para imprimir el encabezado
-const printHeader = () => {
-    displayText('Admin\nBot\nTK', {
-        font: 'chrome',
-        align: 'center',
-        gradient: ['red', 'magenta']
-    });
+displayText('Admin\nBot\nTK', {
+    font: 'chrome',
+    align: 'center',
+    gradient: ['red', 'magenta']
+});
 
-    displayText('Por Joan-TK', {
-        font: 'console',
-        align: 'center',
-        gradient: ['red', 'magenta']
-    });
-};
+displayText('Por Joan-TK', {
+    font: 'console',
+    align: 'center',
+    gradient: ['red', 'magenta']
+});
 
-// Imprime el encabezado inicial
-printHeader();
+var isRunning = false;
 
-let isRunning = false;
-const maxRestartAttempts = 5; // Límite de reinicios
-let restartAttempts = 0;
-
-// Función para iniciar el proceso principal
 async function start(file) {
     if (isRunning) return;
     isRunning = true;
 
-    const currentFilePath = fileURLToPath(import.meta.url);
-    const args = [join(dirname(currentFilePath), file), ...process.argv.slice(2)];
+    const currentFilePath = new URL(import.meta.url).pathname;
+    let args = [join(__dirname, file), ...process.argv.slice(2)];
 
     displayText([process.argv[0], ...args].join(' '), {
         font: 'console',
@@ -66,50 +88,43 @@ async function start(file) {
 
         cluster.on('exit', (worker, code, signal) => {
             console.error(`Worker ${worker.id} died with code: ${code}, and signal: ${signal}`);
-            if (code !== 0 && restartAttempts < maxRestartAttempts) {
-                restartAttempts++;
-                console.log(`Reiniciando proceso (${restartAttempts}/${maxRestartAttempts})...`);
+            if (code !== 0) {
+                console.log('Reiniciando proceso...');
                 start(file);
-            } else if (restartAttempts >= maxRestartAttempts) {
-                console.error('Número máximo de reinicios alcanzado. No se reiniciará el proceso.');
             }
         });
 
-        const worker = cluster.fork();
+        let p = cluster.fork();
 
-        worker.on('message', (data) => {
+        p.on('message', data => {
             switch (data) {
                 case 'reset':
-                    worker.process.kill();
+                    p.process.kill();
                     isRunning = false;
                     start(file);
                     break;
                 case 'uptime':
-                    worker.send(process.uptime());
+                    p.send(process.uptime());
                     break;
             }
         });
 
-        try {
-            const watcher = fs.watch(args[0], () => {
-                watcher.close();
-                start(file);
-            });
+        watchFile(args[0], () => {
+            unwatchFile(args[0]);
+            start(file);
+        });
 
-            watcher.on('error', (err) => {
-                console.error(chalk.red(`❌ Error al monitorear el archivo: ${err}`));
-            });
-        } catch (err) {
-            console.error(chalk.red(`❌ Error al iniciar el monitoreo del archivo: ${err}`));
-        }
-
-        // Información del sistema
         const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
         const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
-        const currentTime = new Date().toLocaleString();
+        const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
 
-        let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
-        console.log(chalk.yellow(`╭${lineM}
+        try {
+            const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
+            const packageJsonObj = JSON.parse(packageJsonData);
+            const currentTime = new Date().toLocaleString();
+
+            let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
+            console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`🖥️ ${os.type()}, ${os.release()} - ${os.arch()}`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💾 Total RAM: ${ramInGB.toFixed(2)} GB`)}
@@ -118,10 +133,10 @@ async function start(file) {
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
 ┊${chalk.blueBright('┊')} ${chalk.blue.bold(`🟢INFORMACIÓN :`)}
 ┊${chalk.blueBright('┊')} ${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
-┊${chalk.blueBright('┊')}${chalk.cyan(`💚 Nombre: ${name}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`💻 Versión: ${packageJson.version}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`💜 Descripción: ${packageJson.description}`)}
-┊${chalk.blueBright('┊')}${chalk.cyan(`😺 Project Author: ${author.name} (@Joan-TK)`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`💚 Nombre: ${packageJsonObj.name}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`💻 Versión: ${packageJsonObj.version}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`💜 Descripción: ${packageJsonObj.description}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`😺 Project Author: ${packageJsonObj.author.name} (@Joan-TK)`)}
 ┊${chalk.blueBright('┊')}${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ┊${chalk.blueBright('┊')}${chalk.yellow(`💜 Colaboradores:`)}
 ┊${chalk.blueBright('┊')}${chalk.yellow(`• JJoan02 (Joan-TK)`)}
@@ -132,24 +147,20 @@ async function start(file) {
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
+            setInterval(() => {}, 1000);
         } catch (err) {
             console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
         }
-
     } else {
         console.log('Worker process started.');
     }
 
-    // Configuración de argumentos de línea de comando
-    const opts = yargs(process.argv.slice(2)).exitProcess(false).parse();
+    let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
     if (!opts['test']) {
-        if (rl.listenerCount('line') === 0) {
-            rl.on('line', line => {
-                process.send(line.trim());
-            });
-        }
+        if (!rl.listenerCount()) rl.on('line', line => {
+            process.send(line.trim());
+        });
     }
 }
 
-// Inicia el proceso con el archivo principal
 start('main.js');
