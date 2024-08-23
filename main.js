@@ -406,21 +406,22 @@ const pluginFilter = filename => filename.endsWith('.js');
 
 // Inicializa los plugins
 async function filesInit() {
+    const plugins = {}; // Mantén los plugins en un objeto local para evitar conflictos globales
     for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
         try {
             const file = path.join(pluginFolder, filename);
             console.log(`Loading file: ${file}`);
             const module = await import(file);
-            global.plugins[filename] = module.default || module;
+            plugins[filename] = module.default || module;
         } catch (e) {
             console.error(`Error loading plugin ${filename}:`, e.message);
             console.error(e.stack);
-            delete global.plugins[filename];
         }
     }
+    global.plugins = plugins; // Asigna los plugins cargados a la variable global
 }
 
-// Asegúrate de llamar a la función para inicializar los plugins
+// Llama a la función para inicializar los plugins
 filesInit().then(() => {
     console.log('Plugins loaded successfully:', Object.keys(global.plugins));
 }).catch((err) => {
