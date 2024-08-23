@@ -119,7 +119,7 @@ async function start(file) {
 
     const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
     const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
-    const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
+    const packageJsonPath = join(dirname(currentFilePath), './package.json');
     
     try {
         const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
@@ -168,15 +168,44 @@ if (cluster.isMaster) {
 } else {
     // Lógica del proceso hijo
     console.log('Proceso hijo en ejecución');
+
+    // Ejemplo de función para manejar tareas específicas
+    async function handleTask(data) {
+        try {
+            // Aquí puedes agregar la lógica para manejar tareas específicas
+            console.log(`Procesando datos: ${data}`);
+            // Simular una operación asíncrona
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log(`Datos procesados: ${data}`);
+        } catch (error) {
+            console.error(`Error al procesar datos: ${error.message}`);
+        }
+    }
+
     process.on('message', msg => {
         if (msg === 'reset') {
             console.log('Reiniciando proceso hijo');
             process.exit(0); // Termina el proceso hijo
         } else if (msg === 'uptime') {
             process.send(process.uptime()); // Envía el tiempo de actividad al proceso maestro
+        } else if (msg.task) {
+            handleTask(msg.task); // Maneja tareas específicas
         } else {
             console.log(`Mensaje del maestro: ${msg}`);
         }
+    });
+
+    // Función para manejar errores globales
+    process.on('uncaughtException', err => {
+        console.error(`Excepción no capturada: ${err.message}`);
+        // Realizar limpieza o reinicio si es necesario
+        process.exit(1);
+    });
+
+    // Función para manejar señales de terminación
+    process.on('SIGTERM', () => {
+        console.log('Señal SIGTERM recibida. Terminando proceso hijo...');
+        process.exit(0);
     });
 
     // Puedes agregar aquí más lógica para el proceso hijo
