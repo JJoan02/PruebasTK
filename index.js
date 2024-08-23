@@ -1,13 +1,13 @@
 import { join, dirname } from 'path';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
-import cluster from 'cluster';
+import * as cluster from 'cluster';
 import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
 import yargs from 'yargs';
-import express from 'express';
 import chalk from 'chalk';
+import path from 'path';
 import os from 'os';
 import { promises as fsPromises } from 'fs';
 import { z } from 'zod';
@@ -82,12 +82,6 @@ async function start(file) {
     });
 
     if (cluster.isMaster) {
-        // Configuración del master
-        cluster.setupMaster({
-            exec: args[0],
-            args: args.slice(1)
-        });
-
         cluster.on('fork', (worker) => {
             console.log(`Worker ${worker.id} forked`);
         });
@@ -123,12 +117,12 @@ async function start(file) {
         const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
         const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
         const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
-        
+
         try {
             const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
             const packageJsonObj = JSON.parse(packageJsonData);
             const currentTime = new Date().toLocaleString();
-            
+
             let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
             console.log(chalk.yellow(`╭${lineM}
 ┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
@@ -153,15 +147,18 @@ async function start(file) {
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
-        setInterval(() => {}, 1000);
-    } catch (err) {
-        console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+            setInterval(() => {}, 1000);
+        } catch (err) {
+            console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+        }
+    } else {
+        console.log('Worker process started.');
     }
 
     let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
     if (!opts['test']) {
         if (!rl.listenerCount()) rl.on('line', line => {
-            p.emit('message', line.trim());
+            process.send(line.trim());
         });
     }
 }
