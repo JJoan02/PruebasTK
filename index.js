@@ -150,63 +150,15 @@ async function start(file) {
 ┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
 ┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
 ╰${lineM}`));
-        setInterval(() => {}, 1000);
-    } catch (err) {
-        console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
-    }
-
-    let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
-    if (!opts['test']) {
-        if (!rl.listenerCount()) rl.on('line', line => {
-            worker.send(line.trim()); // Envía el mensaje al proceso hijo
-        });
-    }
+setInterval(() => {}, 1000);
+} catch (err) {
+console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
 }
 
-if (cluster.isMaster) {
-    start('main.js');
-} else {
-    // Lógica del proceso hijo
-    console.log('Proceso hijo en ejecución');
+let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
+if (!opts['test'])
+if (!rl.listenerCount()) rl.on('line', line => {
+p.emit('message', line.trim())
+})}
 
-    // Ejemplo de función para manejar tareas específicas
-    async function handleTask(data) {
-        try {
-            // Aquí puedes agregar la lógica para manejar tareas específicas
-            console.log(`Procesando datos: ${data}`);
-            // Simular una operación asíncrona
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log(`Datos procesados: ${data}`);
-        } catch (error) {
-            console.error(`Error al procesar datos: ${error.message}`);
-        }
-    }
-
-    process.on('message', msg => {
-        if (msg === 'reset') {
-            console.log('Reiniciando proceso hijo');
-            process.exit(0); // Termina el proceso hijo
-        } else if (msg === 'uptime') {
-            process.send(process.uptime()); // Envía el tiempo de actividad al proceso maestro
-        } else if (msg.task) {
-            handleTask(msg.task); // Maneja tareas específicas
-        } else {
-            console.log(`Mensaje del maestro: ${msg}`);
-        }
-    });
-
-    // Función para manejar errores globales
-    process.on('uncaughtException', err => {
-        console.error(`Excepción no capturada: ${err.message}`);
-        // Realizar limpieza o reinicio si es necesario
-        process.exit(1);
-    });
-
-    // Función para manejar señales de terminación
-    process.on('SIGTERM', () => {
-        console.log('Señal SIGTERM recibida. Terminando proceso hijo...');
-        process.exit(0);
-    });
-
-    // Puedes agregar aquí más lógica para el proceso hijo
-}
+start('main.js')
