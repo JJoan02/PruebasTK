@@ -1,16 +1,17 @@
 import { join, dirname } from 'path';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
-import cluster from 'cluster';
+import * as cluster from 'cluster';  // Importar todo el módulo y luego acceder a las funciones
 import { watchFile, unwatchFile } from 'fs';
 import cfonts from 'cfonts';
 import { createInterface } from 'readline';
 import yargs from 'yargs';
 import express from 'express';
 import chalk from 'chalk';
+import path from 'path';
 import os from 'os';
 import { promises as fsPromises } from 'fs';
-import { z } from 'zod';
+import { z } from 'zod'; // Importar zod para validar los esquemas
 
 // Definir los esquemas con zod
 const BioskopArgsSchema = z.object({
@@ -37,33 +38,41 @@ const BioskopNowSchema = z.object({
     playingAt: z.string()
 });
 
+// Exportar los esquemas para que estén disponibles en otros módulos si es necesario
 export { BioskopArgsSchema, BioskopSchema, BioskopNowSchema };
 
+// Acceso a las funciones `setupMaster` y `fork` desde `cluster`
+const { setupMaster, fork } = cluster;
+
+// https://stackoverflow.com/a/50052194
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(__dirname);
-const { name, author } = require(join(__dirname, './package.json'));
+const require = createRequire(__dirname); // Incorpora la capacidad de crear el método 'requerir'
+const { name, author } = require(join(__dirname, './package.json')); // https://www.stefanjudis.com/snippets/how-to-import-json-files-in-es-modules-node-js/
 const { say } = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
 
+// Función para mostrar texto con estilo en la consola
 const displayText = (text, options) => {
     const { font, align, gradient } = options;
     say(text, {
-        font: font || 'default',
-        align: align || 'left',
-        gradient: gradient || ['white', 'black']
+        font: font || 'default',    // Estilo de fuente, usa 'default' si no se especifica
+        align: align || 'left',     // Alineación del texto, usa 'left' si no se especifica
+        gradient: gradient || ['white', 'black'] // Gradiente de colores, usa blanco a negro por defecto
     });
 };
 
+// Mostrar el texto '𝑨𝒅𝒎𝒊𝒏\n𝑻𝑲' en la consola con un estilo de fuente y gradiente específico
 displayText('Admin\nBot\nTK', {
-    font: 'chrome',
-    align: 'center',
-    gradient: ['red', 'magenta']
+    font: 'chrome',              // Estilo de fuente utilizado ('chrome')
+    align: 'center',             // Alineación del texto en el centro
+    gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
 });
 
+// Mostrar el texto 'Por 𝑱𝒐𝒂𝒏-𝑻𝑲' en la consola con otro estilo de fuente y gradiente de color
 displayText('Por Joan-TK', {
-    font: 'console',
-    align: 'center',
-    gradient: ['red', 'magenta']
+    font: 'console',             // Estilo de fuente utilizado ('console')
+    align: 'center',             // Alineación del texto en el centro
+    gradient: ['red', 'magenta'] // Gradiente de colores utilizado (de rojo a magenta)
 });
 
 var isRunning = false;
@@ -81,54 +90,81 @@ async function start(file) {
         gradient: ['red', 'magenta']
     });
 
-    if (cluster.isMaster) {
-        // Configuración del master
-        cluster.setupMaster({
-            exec: args[0],
-            args: args.slice(1)
-        });
+    setupMaster({ exec: args[0], args: args.slice(1) });
+    let p = fork();
 
-        cluster.on('fork', (worker) => {
-            console.log(`Worker ${worker.id} forked`);
-        });
+    p.on('message', data => {
+        switch (data) {
+            case 'reset':
+                p.process.kill();
+                isRunning = false;
+                start.apply(this, arguments);
+                break;
+            case 'uptime':
+                p.send(process.uptime());
+                break;
+        }
+    });
 
-        cluster.on('exit', (worker, code, signal) => {
-            console.error(`Worker ${worker.id} died with code: ${code}, and signal: ${signal}`);
-            if (code !== 0) {
-                console.log('Reiniciando proceso...');
-                start(file);
-            }
-        });
-
-        let p = cluster.fork();
-
-        p.on('message', data => {
-            switch (data) {
-                case 'reset':
-                    p.process.kill();
-                    isRunning = false;
-                    start(file);
-                    break;
-                case 'uptime':
-                    p.send(process.uptime());
-                    break;
-            }
-        });
-
-        watchFile(args[0], () => {
-            unwatchFile(args[0]);
+    p.on('exit', (_, code) => {
+        isRunning = false;
+        console.error('⚠️ ERROR ⚠️ >> ', code);
+        if (code !== 0) {
+            console.log('Reiniciando proceso...');
             start(file);
-        });
+        }
+    });
 
-        const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
-        const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
-        const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
+    // Monitorea cambios en el archivo y reinicia si hay cambios
+    watchFile(args[0], () => {
+        unwatchFile(args[0]);
+        start(file);
+    });
+
+    const ramInGB = os.totalmem() / (1024 * 1024 * 1024);
+    const freeRamInGB = os.freemem() / (1024 * 1024 * 1024);
+    const packageJsonPath = path.join(path.dirname(currentFilePath), './package.json');
+    
+    try {
+        const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
+        const packageJsonObj = JSON.parse(packageJsonData);
+        const currentTime = new Date().toLocaleString();
         
-        try {
-            const packageJsonData = await fsPromises.readFile(packageJsonPath, 'utf-8');
-            const packageJsonObj = JSON.parse(packageJsonData);
-            const currentTime = new Date().toLocaleString();
-            
-            let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
-            console.log(chalk.yellow(`╭${lineM}
+        let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》';
+        console.log(chalk.yellow(`╭${lineM}
+┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
+┊${chalk.blueBright('┊')}${chalk.yellow(`🖥️ ${os.type()}, ${os.release()} - ${os.arch()}`)}
+┊${chalk.blueBright('┊')}${chalk.yellow(`💾 Total RAM: ${ramInGB.toFixed(2)} GB`)}
+┊${chalk.blueBright('┊')}${chalk.yellow(`💽 Free RAM: ${freeRamInGB.toFixed(2)} GB`)}
+┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
+┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
+┊${chalk.blueBright('┊')} ${chalk.blue.bold(`🟢INFORMACIÓN :`)}
+┊${chalk.blueBright('┊')} ${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
+┊${chalk.blueBright('┊')}${chalk.cyan(`💚 Nombre: ${packageJsonObj.name}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`💻 Versión: ${packageJsonObj.version}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`💜 Descripción: ${packageJsonObj.description}`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`😺 Project Author: ${packageJsonObj.author.name} (@Joan-TK)`)}
+┊${chalk.blueBright('┊')}${chalk.blueBright('┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
+┊${chalk.blueBright('┊')}${chalk.yellow(`💜 Colaboradores:`)}
+┊${chalk.blueBright('┊')}${chalk.yellow(`• JJoan02 (Joan-TK)`)}
+┊${chalk.blueBright('┊')}${chalk.yellow(`• KatashiFukushima (Katashi)`)}
+┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
+┊${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
+┊${chalk.blueBright('┊')}${chalk.cyan(`⏰ Hora Actual :`)}
+┊${chalk.blueBright('┊')}${chalk.cyan(`${currentTime}`)}
+┊${chalk.blueBright('╰┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')} 
+╰${lineM}`));
+        setInterval(() => {}, 1000);
+    } catch (err) {
+        console.error(chalk.red(`❌ No se pudo leer el archivo package.json: ${err}`));
+    }
 
+    let opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
+    if (!opts['test']) {
+        if (!rl.listenerCount()) rl.on('line', line => {
+            p.emit('message', line.trim());
+        });
+    }
+}
+
+start('main.js');
